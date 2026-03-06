@@ -1,0 +1,362 @@
+// GESTAO DE AGENDAMENTOS
+let editingAgendamentoId = null;
+
+function renderAgendamentos() {
+    renderCalendario();
+    renderAgendamentosHoje();
+    renderListaAgendamentos();
+    updateAgendamentoStats();
+}
+
+function renderAgendamentosHoje() {
+    const tbody = document.getElementById('agendamentosHojeTable');
+    if (!tbody) return;
+    
+    const hoje = new Date().toISOString().split('T')[0];
+    const agendamentosHoje = AppState.data.agendamentos.filter(a => a.data === hoje);
+    
+    if (agendamentosHoje.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Nenhum agendamento para hoje</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = agendamentosHoje
+        .sort((a, b) => a.hora.localeCompare(b.hora))
+        .map(ag => {
+            const cliente = AppState.data.clientes.find(c => c.id === ag.clienteId);
+            const veiculo = AppState.data.veiculos.find(v => v.id === ag.veiculoId);
+            return `
+                <tr>
+                    <td><strong>${ag.hora}</strong></td>
+                    <td>${cliente?.nome || 'N/A'}</td>
+                    <td>${veiculo?.modelo || 'N/A'} - ${veiculo?.placa || ''}</td>
+                    <td>${ag.tipoServico}</td>
+                    <td>${getAgendamentoStatusBadge(ag.status)}</td>
+                    <td>
+                        <button class="btn-icon" onclick="viewAgendamento(${ag.id})" title="Ver detalhes">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        ${ag.status === 'confirmado' ? `
+                            <button class="btn-icon btn-success" onclick="converterEmOS(${ag.id})" title="Converter em OS">
+                                <i class="fas fa-check-circle"></i>
+                            </button>
+                        ` : ''}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+}
+
+function renderListaAgendamentos() {
+    const tbody = document.getElementById('listaAgendamentosTable');
+    if (!tbody) return;
+    
+    const filteredAgendamentos = filterAgendamentos();
+    
+    if (filteredAgendamentos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhum agendamento encontrado</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = filteredAgendamentos.map(ag => {
+        const cliente = AppState.data.clientes.find(c => c.id === ag.clienteId);
+        const veiculo = AppState.data.veiculos.find(v => v.id === ag.veiculoId);
+        return `
+            <tr>
+                <td>${formatDate(ag.data)}</td>
+                <td><strong>${ag.hora}</strong></td>
+                <td>${cliente?.nome || 'N/A'}</td>
+                <td>${veiculo?.modelo || 'N/A'} - ${veiculo?.placa || ''}</td>
+                <td>${ag.tipoServico}</td>
+                <td>${getAgendamentoStatusBadge(ag.status)}</td>
+                <td>
+                    <button class="btn-icon" onclick="viewAgendamento(${ag.id})" title="Ver detalhes">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn-icon" onclick="editAgendamento(${ag.id})" title="Editar">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    ${getAgendamentoActions(ag)}
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function getAgendamentoActions(ag) {
+    if (ag.status === 'pendente') {
+        return `<button class="btn-icon btn-success" onclick="confirmarAgendamento(${ag.id})" title="Confirmar">
+                    <i class="fas fa-check"></i>
+                </button>`;
+    } else if (ag.status === 'confirmado') {
+        return `<button class="btn-icon btn-success" onclick="converterEmOS(${ag.id})" title="Converter em OS">
+                    <i class="fas fa-clipboard-check"></i>
+                </button>`;
+    } else if (ag.status === 'cancelado') {
+        return `<button class="btn-icon btn-danger" onclick="deleteAgendamento(${ag.id})" title="Excluir">
+                    <i class="fas fa-trash"></i>
+                </button>`;
+    }
+    return '';
+}
+
+function filterAgendamentos() {
+    const statusFilter = document.getElementById('filterAgendamentoStatus')?.value || 'todos';
+    const searchTerm = document.getElementById('searchAgendamentos')?.value.toLowerCase() || '';
+    
+    return AppState.data.agendamentos.filter(ag => {
+        const cliente = AppState.data.clientes.find(c => c.id === ag.clienteId);
+        const veiculo = AppState.data.veiculos.find(v => v.id === ag.veiculoId);
+        
+        const matchStatus = statusFilter === 'todos' || ag.status === statusFilter;
+        const matchSearch = !searchTerm || 
+            cliente?.nome.toLowerCase().includes(searchTerm) ||
+            veiculo?.placa.toLowerCase().includes(searchTerm) ||
+            ag.tipoServico.toLowerCase().includes(searchTerm);
+        
+        return matchStatus && matchSearch;
+    });
+}
+
+function getAgendamentoStatusBadge(status) {
+    const badges = {
+        'pendente': '<span class="badge badge-warning">Pendente</span>',
+        'confirmado': '<span class="badge badge-success">Confirmado</span>',
+        'cancelado': '<span class="badge badge-danger">Cancelado</span>',
+        'atendido': '<span class="badge badge-info">Atendido</span>'
+    };
+    return badges[status] || status;
+}
+
+function openAgendamentoModal(agendamentoId = null) {
+    const modal = document.getElementById('modalAgendamento');
+    const title = document.getElementById('modalAgendamentoTitle');
+    
+    populateClienteSelectAgendamento();
+    
+    if (agendamentoId) {
+        editingAgendamentoId = agendamentoId;
+        const ag = AppState.data.agendamentos.find(a => a.id === agendamentoId);
+        if (ag) {
+            title.textContent = 'Editar Agendamento';
+            document.getElementById('agendamentoCliente').value = ag.clienteId || '';
+            updateVeiculoSelectAgendamento(ag.clienteId, ag.veiculoId);
+            document.getElementById('agendamentoData').value = ag.data || '';
+            document.getElementById('agendamentoHora').value = ag.hora || '';
+            document.getElementById('agendamentoTipo').value = ag.tipoServico || '';
+            document.getElementById('agendamentoObservacoes').value = ag.observacoes || '';
+        }
+    } else {
+        editingAgendamentoId = null;
+        title.textContent = 'Novo Agendamento';
+        document.getElementById('formAgendamento').reset();
+        document.getElementById('agendamentoData').value = new Date().toISOString().split('T')[0];
+    }
+    
+    modal.style.display = 'flex';
+}
+
+function closeAgendamentoModal() {
+    document.getElementById('modalAgendamento').style.display = 'none';
+    document.getElementById('formAgendamento').reset();
+    editingAgendamentoId = null;
+}
+
+function populateClienteSelectAgendamento() {
+    const select = document.getElementById('agendamentoCliente');
+    select.innerHTML = '<option value="">Selecione um cliente</option>' +
+        AppState.data.clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+}
+
+function updateVeiculoSelectAgendamento(clienteId, selectedVeiculoId = null) {
+    const select = document.getElementById('agendamentoVeiculo');
+    const veiculos = AppState.data.veiculos.filter(v => v.clienteId == clienteId);
+    
+    select.innerHTML = '<option value="">Selecione um veiculo</option>' +
+        veiculos.map(v => `<option value="${v.id}" ${v.id == selectedVeiculoId ? 'selected' : ''}>${v.modelo} - ${v.placa}</option>`).join('');
+    
+    select.disabled = veiculos.length === 0;
+}
+
+function saveAgendamento(event) {
+    event.preventDefault();
+    
+    const clienteId = parseInt(document.getElementById('agendamentoCliente').value);
+    const veiculoId = parseInt(document.getElementById('agendamentoVeiculo').value);
+    
+    if (!clienteId || !veiculoId) {
+        showToast('Selecione cliente e veiculo', 'info');
+        return;
+    }
+    
+    const agendamentoData = {
+        clienteId: clienteId,
+        veiculoId: veiculoId,
+        data: document.getElementById('agendamentoData').value,
+        hora: document.getElementById('agendamentoHora').value,
+        tipoServico: document.getElementById('agendamentoTipo').value,
+        observacoes: document.getElementById('agendamentoObservacoes').value
+    };
+    
+    if (editingAgendamentoId) {
+        const index = AppState.data.agendamentos.findIndex(a => a.id === editingAgendamentoId);
+        if (index !== -1) {
+            AppState.data.agendamentos[index] = { ...AppState.data.agendamentos[index], ...agendamentoData };
+            showToast('Agendamento atualizado com sucesso!', 'success');
+        }
+    } else {
+        const newAgendamento = {
+            id: Date.now(),
+            status: 'pendente',
+            criadoEm: new Date().toISOString(),
+            ...agendamentoData
+        };
+        AppState.data.agendamentos.push(newAgendamento);
+        showToast('Agendamento criado com sucesso!', 'success');
+    }
+    
+    saveToLocalStorage();
+    renderAgendamentos();
+    closeAgendamentoModal();
+    updateDashboard();
+}
+
+function confirmarAgendamento(id) {
+    const ag = AppState.data.agendamentos.find(a => a.id === id);
+    if (!ag) return;
+    
+    if (confirm('Confirmar este agendamento?')) {
+        ag.status = 'confirmado';
+        saveToLocalStorage();
+        renderAgendamentos();
+        showToast('Agendamento confirmado!', 'success');
+    }
+}
+
+function converterEmOS(agendamentoId) {
+    const ag = AppState.data.agendamentos.find(a => a.id === agendamentoId);
+    if (!ag) return;
+    
+    if (!confirm('Converter este agendamento em Ordem de Servico?')) return;
+    
+    const cliente = AppState.data.clientes.find(c => c.id === ag.clienteId);
+    const veiculo = AppState.data.veiculos.find(v => v.id === ag.veiculoId);
+    
+    const nextNumero = (AppState.data.ordensServico.length + 1).toString().padStart(6, '0');
+    const newOS = {
+        id: `OS-${Date.now()}`,
+        numero: nextNumero,
+        clienteId: ag.clienteId,
+        cliente: cliente.nome,
+        veiculoId: ag.veiculoId,
+        veiculo: `${veiculo.modelo} - ${veiculo.placa}`,
+        status: 'aguardando',
+        data: new Date().toISOString().split('T')[0],
+        descricao: `${ag.tipoServico} - Agendado para ${ag.data} ${ag.hora}`,
+        observacoes: ag.observacoes || '',
+        servicos: [],
+        valorTotal: 0,
+        agendamentoId: ag.id
+    };
+    
+    AppState.data.ordensServico.push(newOS);
+    ag.status = 'atendido';
+    
+    saveToLocalStorage();
+    renderAgendamentos();
+    updateDashboard();
+    
+    showToast('OS criada com sucesso! Numero: ' + newOS.numero, 'success');
+    
+    setTimeout(() => {
+        if (confirm('Deseja ir para a OS criada?')) {
+            navigateTo('ordens-servico');
+        }
+    }, 1000);
+}
+
+function editAgendamento(id) {
+    openAgendamentoModal(id);
+}
+
+function deleteAgendamento(id) {
+    if (!confirm('Tem certeza que deseja excluir este agendamento?')) return;
+    
+    AppState.data.agendamentos = AppState.data.agendamentos.filter(a => a.id !== id);
+    saveToLocalStorage();
+    renderAgendamentos();
+    updateDashboard();
+    showToast('Agendamento excluido com sucesso!', 'success');
+}
+
+function viewAgendamento(id) {
+    const ag = AppState.data.agendamentos.find(a => a.id === id);
+    if (!ag) return;
+    
+    const cliente = AppState.data.clientes.find(c => c.id === ag.clienteId);
+    const veiculo = AppState.data.veiculos.find(v => v.id === ag.veiculoId);
+    
+    const modal = document.getElementById('modalViewAgendamento');
+    const content = document.getElementById('viewAgendamentoContent');
+    
+    content.innerHTML = `
+        <div class="agendamento-view-section">
+            <h4>Informacoes do Agendamento</h4>
+            <p><strong>Data:</strong> ${formatDate(ag.data)}</p>
+            <p><strong>Horario:</strong> ${ag.hora}</p>
+            <p><strong>Status:</strong> ${getAgendamentoStatusBadge(ag.status)}</p>
+            <p><strong>Tipo de Servico:</strong> ${ag.tipoServico}</p>
+        </div>
+        
+        <div class="agendamento-view-section">
+            <h4>Cliente e Veiculo</h4>
+            <p><strong>Cliente:</strong> ${cliente?.nome || 'N/A'}</p>
+            <p><strong>Telefone:</strong> ${cliente?.telefone || 'N/A'}</p>
+            <p><strong>Veiculo:</strong> ${veiculo?.modelo || 'N/A'}</p>
+            <p><strong>Placa:</strong> ${veiculo?.placa || 'N/A'}</p>
+        </div>
+        
+        ${ag.observacoes ? `
+        <div class="agendamento-view-section">
+            <h4>Observacoes</h4>
+            <p>${ag.observacoes}</p>
+        </div>
+        ` : ''}
+    `;
+    
+    modal.style.display = 'flex';
+}
+
+function closeViewAgendamentoModal() {
+    document.getElementById('modalViewAgendamento').style.display = 'none';
+}
+
+function updateAgendamentoStats() {
+    const total = AppState.data.agendamentos.length;
+    const pendentes = AppState.data.agendamentos.filter(a => a.status === 'pendente').length;
+    const confirmados = AppState.data.agendamentos.filter(a => a.status === 'confirmado').length;
+    const hoje = new Date().toISOString().split('T')[0];
+    const hojeCount = AppState.data.agendamentos.filter(a => a.data === hoje).length;
+    
+    const statsEl = document.getElementById('agendamentoStats');
+    if (statsEl) {
+        statsEl.innerHTML = `
+            <div class="stat-item">
+                <span class="stat-label">Total:</span>
+                <span class="stat-value">${total}</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Hoje:</span>
+                <span class="stat-value badge-info">${hojeCount}</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Pendentes:</span>
+                <span class="stat-value badge-warning">${pendentes}</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Confirmados:</span>
+                <span class="stat-value badge-success">${confirmados}</span>
+            </div>
+        `;
+    }
+}

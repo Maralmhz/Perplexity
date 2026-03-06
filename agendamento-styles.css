@@ -1,0 +1,240 @@
+/* ESTILOS DO CALENDARIO E AGENDAMENTOS */
+
+.calendario-container {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin-bottom: 30px;
+}
+
+.calendario-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.calendario-header h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--dark-color);
+}
+
+.btn-nav {
+    background: transparent;
+    border: none;
+    color: var(--primary-color);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: var(--transition);
+}
+
+.btn-nav:hover {
+    background-color: var(--light-bg);
+}
+
+.calendario-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+}
+
+.dia-semana {
+    text-align: center;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 14px;
+    padding: 10px;
+    background-color: var(--light-bg);
+    border-radius: 6px;
+}
+
+.dia-vazio {
+    min-height: 80px;
+}
+
+.dia-calendario {
+    min-height: 80px;
+    padding: 8px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+}
+
+.dia-calendario:hover {
+    border-color: var(--primary-color);
+    background-color: rgba(0, 102, 204, 0.05);
+    transform: scale(1.02);
+}
+
+.dia-calendario.hoje {
+    border-color: var(--primary-color);
+    background-color: rgba(0, 102, 204, 0.1);
+}
+
+.dia-numero {
+    font-weight: 600;
+    color: var(--dark-color);
+    margin-bottom: 4px;
+}
+
+.agendamentos-indicador {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.badge-mini {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.agendamentos-hoje-section {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin-bottom: 30px;
+}
+
+.agendamento-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: var(--white);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.agendamento-card:hover {
+    border-color: var(--primary-color);
+    background-color: var(--light-bg);
+}
+
+.agendamento-hora {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary-color);
+    min-width: 60px;
+}
+
+.agendamento-info {
+    flex: 1;
+}
+
+.agendamento-info strong {
+    display: block;
+    color: var(--dark-color);
+    margin-bottom: 4px;
+}
+
+.agendamento-info p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin: 2px 0;
+}
+
+.agendamento-status {
+    min-width: 100px;
+    text-align: right;
+}
+
+.agendamento-view-section {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.agendamento-view-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.agendamento-view-section h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--dark-color);
+    margin-bottom: 10px;
+}
+
+.agendamento-view-section p {
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.horario-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.horario-slot {
+    padding: 10px;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+    font-weight: 600;
+}
+
+.horario-slot:hover {
+    border-color: var(--primary-color);
+    background-color: var(--light-bg);
+}
+
+.horario-slot.ocupado {
+    background-color: #f8d7da;
+    color: #721c24;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.horario-slot.selecionado {
+    background-color: var(--primary-color);
+    color: var(--white);
+    border-color: var(--primary-color);
+}
+
+@media (max-width: 768px) {
+    .calendario-grid {
+        gap: 4px;
+    }
+    
+    .dia-calendario {
+        min-height: 60px;
+        padding: 4px;
+    }
+    
+    .dia-numero {
+        font-size: 12px;
+    }
+    
+    .badge-mini {
+        font-size: 9px;
+        padding: 1px 4px;
+    }
+    
+    .agendamento-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .agendamento-status {
+        width: 100%;
+        text-align: left;
+    }
+}
