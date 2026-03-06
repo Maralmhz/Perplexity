@@ -1,0 +1,173 @@
+/* ESTILOS ADICIONAIS PARA ORDENS DE SERVICO */
+
+.os-stats {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.stat-item {
+    background: var(--white);
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.stat-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.stat-value.badge-warning {
+    color: #856404;
+}
+
+.stat-value.badge-info {
+    color: #0c5460;
+}
+
+.stat-value.badge-success {
+    color: #155724;
+}
+
+.filters-bar {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.filters-bar select {
+    padding: 10px 15px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 14px;
+    background-color: var(--white);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.filters-bar select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.modal-large {
+    max-width: 800px;
+}
+
+.form-section {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.form-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.form-section h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--dark-color);
+    margin-bottom: 15px;
+}
+
+.add-servico-form {
+    display: grid;
+    grid-template-columns: 2fr 1fr auto;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.add-servico-form input {
+    padding: 10px 12px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 14px;
+    transition: var(--transition);
+}
+
+.add-servico-form input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.servicos-table {
+    margin-bottom: 15px;
+}
+
+.os-total-display {
+    text-align: right;
+    padding: 15px;
+    background-color: var(--light-bg);
+    border-radius: 8px;
+    font-size: 18px;
+}
+
+.os-view-section {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.os-view-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.os-view-section h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--dark-color);
+    margin-bottom: 10px;
+}
+
+.os-view-section p {
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.os-total {
+    text-align: right;
+    margin-top: 10px;
+    font-size: 16px;
+}
+
+.btn-success {
+    color: var(--success-color);
+}
+
+.btn-success:hover {
+    background-color: #d4edda;
+}
+
+@media (max-width: 768px) {
+    .add-servico-form {
+        grid-template-columns: 1fr;
+    }
+    
+    .filters-bar {
+        flex-direction: column;
+    }
+    
+    .filters-bar .search-input-wrapper {
+        max-width: 100%;
+    }
+    
+    .os-stats {
+        flex-direction: column;
+    }
+}
