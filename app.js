@@ -16,12 +16,12 @@ const AppState = {
             {
                 id: 'OS-001',
                 numero: '000001',
-                cliente: 'João Silva',
+                cliente: 'Joao Silva',
                 veiculo: 'Fiat Uno - ABC-1234',
                 status: 'em_andamento',
                 data: '2026-03-06',
                 valorTotal: 850.00,
-                descricao: 'Troca de óleo e filtro'
+                descricao: 'Troca de oleo e filtro'
             },
             {
                 id: 'OS-002',
@@ -31,7 +31,7 @@ const AppState = {
                 status: 'aguardando',
                 data: '2026-03-06',
                 valorTotal: 1200.00,
-                descricao: 'Revisão completa'
+                descricao: 'Revisao completa'
             },
             {
                 id: 'OS-003',
@@ -65,7 +65,7 @@ const AppState = {
             }
         ],
         clientes: [
-            { id: 1, nome: 'João Silva', cpf: '123.456.789-00', telefone: '(31) 99999-1111' },
+            { id: 1, nome: 'Joao Silva', cpf: '123.456.789-00', telefone: '(31) 99999-1111' },
             { id: 2, nome: 'Maria Santos', cpf: '987.654.321-00', telefone: '(31) 99999-2222' },
             { id: 3, nome: 'Pedro Costa', cpf: '111.222.333-44', telefone: '(31) 99999-3333' },
             { id: 4, nome: 'Ana Paula', cpf: '444.555.666-77', telefone: '(31) 99999-4444' },
@@ -79,8 +79,8 @@ const AppState = {
             { id: 5, placa: 'JKL-7890', modelo: 'Chevrolet Onix', clienteId: 5 }
         ],
         agendamentos: [
-            { id: 1, clienteId: 1, veiculoId: 1, data: '2026-03-06', hora: '14:00', servico: 'Revisão', status: 'confirmado' },
-            { id: 2, clienteId: 2, veiculoId: 2, data: '2026-03-06', hora: '16:00', servico: 'Troca de óleo', status: 'confirmado' }
+            { id: 1, clienteId: 1, veiculoId: 1, data: '2026-03-06', hora: '14:00', servico: 'Revisao', status: 'confirmado' },
+            { id: 2, clienteId: 2, veiculoId: 2, data: '2026-03-06', hora: '16:00', servico: 'Troca de oleo', status: 'confirmado' }
         ],
         financeiro: {
             contasReceber: [
@@ -88,7 +88,7 @@ const AppState = {
                 { id: 2, descricao: 'OS-002', valor: 1200.00, vencimento: '2026-03-15', status: 'pendente' }
             ],
             contasPagar: [
-                { id: 1, descricao: 'Fornecedor de Peças', valor: 3500.00, vencimento: '2026-03-12', status: 'pendente' },
+                { id: 1, descricao: 'Fornecedor de Pecas', valor: 3500.00, vencimento: '2026-03-12', status: 'pendente' },
                 { id: 2, descricao: 'Aluguel', valor: 2000.00, vencimento: '2026-03-08', status: 'pendente' }
             ]
         }
@@ -96,34 +96,42 @@ const AppState = {
 };
 
 // ============================================
-// INICIALIZAÇÃO
+// INICIALIZACAO
 // ============================================
 function initApp() {
-    console.log('🚀 Perplexity - Sistema de Gestão Automotiva v3.0');
-    console.log('📦 FASE 2: Login + Dashboard Avançado');
+    console.log('Perplexity - Sistema de Gestao Automotiva v3.0');
+    console.log('FASE 2: Login + Dashboard Avancado');
     
-    // Verificar autenticação
+    // Verificar autenticacao
     if (!checkAuth()) {
         window.location.href = 'login.html';
         return;
     }
     
+    // Carregar ou inicializar dados
     loadFromLocalStorage();
+    
+    // Atualizar interface
     updateDashboard();
     updateOficinaNome();
     renderRecentOS();
     updateUserInfo();
     
-    // Previne navegação padrão dos links
+    // Previne navegacao padrao dos links
     document.querySelectorAll('.nav-item').forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
         });
     });
+    
+    console.log('Sistema inicializado com sucesso!');
+    console.log('Total OS:', AppState.data.ordensServico.length);
+    console.log('Total Clientes:', AppState.data.clientes.length);
+    console.log('Total Veiculos:', AppState.data.veiculos.length);
 }
 
 // ============================================
-// AUTENTICAÇÃO
+// AUTENTICACAO
 // ============================================
 function checkAuth() {
     const user = localStorage.getItem('perplexity_user') || sessionStorage.getItem('perplexity_user');
@@ -136,51 +144,48 @@ function checkAuth() {
         AppState.user = JSON.parse(user);
         return true;
     } catch (e) {
-        console.error('❌ Erro ao verificar autenticação:', e);
+        console.error('Erro ao verificar autenticacao:', e);
         return false;
     }
 }
 
 function updateUserInfo() {
     if (AppState.user) {
-        document.querySelector('.user-name').textContent = AppState.user.name;
-        document.querySelector('.user-role').textContent = AppState.user.role;
+        const userNameEl = document.querySelector('.user-name');
+        const userRoleEl = document.querySelector('.user-role');
+        if (userNameEl) userNameEl.textContent = AppState.user.name;
+        if (userRoleEl) userRoleEl.textContent = AppState.user.role;
     }
 }
 
 // ============================================
-// NAVEGAÇÃO
+// NAVEGACAO
 // ============================================
 function navigateTo(page) {
-    // Remove active de todos os itens do menu
     document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.remove('active');
     });
     
-    // Adiciona active no item clicado
     const activeLink = document.querySelector(`[onclick="navigateTo('${page}')"]`);
     if (activeLink) {
         activeLink.classList.add('active');
     }
     
-    // Esconde todas as páginas
     document.querySelectorAll('.page').forEach(p => {
         p.classList.remove('active');
     });
     
-    // Mostra a página selecionada
     const pageElement = document.getElementById(`page-${page}`);
     if (pageElement) {
         pageElement.classList.add('active');
         AppState.currentPage = page;
     }
     
-    // Fecha sidebar no mobile
     if (window.innerWidth <= 768) {
         toggleSidebar();
     }
     
-    console.log(`📄 Navegando para: ${page}`);
+    console.log('Navegando para:', page);
 }
 
 // ============================================
@@ -200,36 +205,53 @@ function toggleSidebar() {
 function updateDashboard() {
     const { ordensServico, clientes, veiculos, agendamentos, financeiro } = AppState.data;
     
-    // Atualizar cards
-    document.getElementById('osAbertas').textContent = ordensServico.filter(os => os.status !== 'concluida').length;
-    document.getElementById('osHoje').textContent = ordensServico.filter(os => isToday(os.data)).length;
-    document.getElementById('totalClientes').textContent = clientes.length;
-    document.getElementById('totalVeiculos').textContent = veiculos.length;
+    console.log('Atualizando dashboard com', ordensServico.length, 'OS');
     
-    // Financeiro
+    const osAbertasEl = document.getElementById('osAbertas');
+    const osHojeEl = document.getElementById('osHoje');
+    const totalClientesEl = document.getElementById('totalClientes');
+    const totalVeiculosEl = document.getElementById('totalVeiculos');
+    
+    if (osAbertasEl) osAbertasEl.textContent = ordensServico.filter(os => os.status !== 'concluida').length;
+    if (osHojeEl) osHojeEl.textContent = ordensServico.filter(os => isToday(os.data)).length;
+    if (totalClientesEl) totalClientesEl.textContent = clientes.length;
+    if (totalVeiculosEl) totalVeiculosEl.textContent = veiculos.length;
+    
     const totalReceber = financeiro.contasReceber.filter(c => c.status === 'pendente').reduce((sum, c) => sum + c.valor, 0);
     const totalPagar = financeiro.contasPagar.filter(c => c.status === 'pendente').reduce((sum, c) => sum + c.valor, 0);
-    document.getElementById('contasReceber').textContent = formatMoney(totalReceber);
-    document.getElementById('contasPagar').textContent = formatMoney(totalPagar);
     
-    // Agendamentos
-    document.getElementById('agendamentosHoje').textContent = agendamentos.filter(a => isToday(a.data)).length;
+    const contasReceberEl = document.getElementById('contasReceber');
+    const contasPagarEl = document.getElementById('contasPagar');
     
-    // Faturamento do mês
+    if (contasReceberEl) contasReceberEl.textContent = formatMoney(totalReceber);
+    if (contasPagarEl) contasPagarEl.textContent = formatMoney(totalPagar);
+    
+    const agendamentosHojeEl = document.getElementById('agendamentosHoje');
+    if (agendamentosHojeEl) agendamentosHojeEl.textContent = agendamentos.filter(a => isToday(a.data)).length;
+    
     const faturamento = ordensServico
         .filter(os => isCurrentMonth(os.data) && os.status === 'concluida')
         .reduce((sum, os) => sum + os.valorTotal, 0);
-    document.getElementById('faturamentoMes').textContent = formatMoney(faturamento);
     
-    console.log('📊 Dashboard atualizado');
+    const faturamentoMesEl = document.getElementById('faturamentoMes');
+    if (faturamentoMesEl) faturamentoMesEl.textContent = formatMoney(faturamento);
+    
+    console.log('Dashboard atualizado');
 }
 
 // ============================================
-// RENDERIZAR ÚLTIMAS OS
+// RENDERIZAR ULTIMAS OS
 // ============================================
 function renderRecentOS() {
     const tbody = document.getElementById('recentOSTable');
+    if (!tbody) {
+        console.warn('Elemento recentOSTable nao encontrado');
+        return;
+    }
+    
     const ordensServico = AppState.data.ordensServico.slice().reverse().slice(0, 5);
+    
+    console.log('Renderizando tabela com', ordensServico.length, 'OS');
     
     if (ordensServico.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhuma OS registrada ainda</td></tr>';
@@ -250,13 +272,15 @@ function renderRecentOS() {
             </td>
         </tr>
     `).join('');
+    
+    console.log('Tabela de OS renderizada:', ordensServico.length, 'registros');
 }
 
 function getStatusBadge(status) {
     const badges = {
         'aguardando': '<span class="badge badge-warning">Aguardando</span>',
         'em_andamento': '<span class="badge badge-info">Em Andamento</span>',
-        'concluida': '<span class="badge badge-success">Concluída</span>',
+        'concluida': '<span class="badge badge-success">Concluida</span>',
         'cancelada': '<span class="badge badge-danger">Cancelada</span>'
     };
     return badges[status] || status;
@@ -280,7 +304,7 @@ function logout() {
         localStorage.removeItem('perplexity_user');
         sessionStorage.removeItem('perplexity_user');
         window.location.href = 'login.html';
-        console.log('👋 Logout realizado');
+        console.log('Logout realizado');
     }
 }
 
@@ -289,29 +313,42 @@ function logout() {
 // ============================================
 function loadFromLocalStorage() {
     const savedData = localStorage.getItem('perplexity_data');
-    if (savedData) {
-        try {
-            const parsed = JSON.parse(savedData);
-            // Mesclar dados salvos com dados de exemplo
-            AppState.data = { ...AppState.data, ...parsed };
-            console.log('💾 Dados carregados do LocalStorage');
-        } catch (e) {
-            console.error('❌ Erro ao carregar dados:', e);
+    
+    // Se nao existe dados salvos, salvar dados de exemplo
+    if (!savedData) {
+        console.log('Primeira execucao - Salvando dados de exemplo');
+        saveToLocalStorage();
+        return;
+    }
+    
+    try {
+        const parsed = JSON.parse(savedData);
+        
+        // Verificar se tem dados, se nao tiver, usar dados de exemplo
+        if (!parsed.ordensServico || parsed.ordensServico.length === 0) {
+            console.log('LocalStorage vazio - Usando dados de exemplo');
+            saveToLocalStorage();
+        } else {
+            AppState.data = parsed;
+            console.log('Dados carregados do LocalStorage');
         }
+    } catch (e) {
+        console.error('Erro ao carregar dados:', e);
+        saveToLocalStorage();
     }
 }
 
 function saveToLocalStorage() {
     try {
         localStorage.setItem('perplexity_data', JSON.stringify(AppState.data));
-        console.log('💾 Dados salvos no LocalStorage');
+        console.log('Dados salvos no LocalStorage');
     } catch (e) {
-        console.error('❌ Erro ao salvar dados:', e);
+        console.error('Erro ao salvar dados:', e);
     }
 }
 
 // ============================================
-// UTILITÁRIOS
+// UTILITARIOS
 // ============================================
 function formatMoney(value) {
     return new Intl.NumberFormat('pt-BR', {
@@ -350,4 +387,4 @@ if (document.readyState === 'loading') {
 }
 
 // Salvar dados periodicamente
-setInterval(saveToLocalStorage, 30000); // A cada 30 segundos
+setInterval(saveToLocalStorage, 30000);
