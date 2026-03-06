@@ -1,0 +1,167 @@
+<!-- PAGINA AGENDAMENTO - Adicionar ao index.html -->
+<section id="page-agendamento" class="page">
+    <div class="page-header">
+        <div>
+            <h2 class="page-title">Sistema de Agendamento</h2>
+            <p class="page-subtitle">Gerencie seus agendamentos com calendario visual</p>
+        </div>
+        <button class="btn btn-primary" onclick="openAgendamentoModal()">
+            <i class="fas fa-plus"></i> Novo Agendamento
+        </button>
+    </div>
+
+    <!-- Estatisticas -->
+    <div id="agendamentoStats" class="os-stats"></div>
+
+    <!-- Calendario Visual -->
+    <div class="calendario-container">
+        <div id="calendarioContainer"></div>
+    </div>
+
+    <!-- Agendamentos de Hoje -->
+    <div class="agendamentos-hoje-section">
+        <h3 class="section-title">Agendamentos de Hoje</h3>
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Horario</th>
+                        <th>Cliente</th>
+                        <th>Veiculo</th>
+                        <th>Servico</th>
+                        <th>Status</th>
+                        <th>Acoes</th>
+                    </tr>
+                </thead>
+                <tbody id="agendamentosHojeTable">
+                    <tr><td colspan="6" class="text-center">Nenhum agendamento para hoje</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Lista Completa de Agendamentos -->
+    <div class="recent-section">
+        <h3 class="section-title">Todos os Agendamentos</h3>
+        
+        <!-- Filtros -->
+        <div class="filters-bar">
+            <div class="search-input-wrapper">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchAgendamentos" placeholder="Buscar por cliente, veiculo ou servico..." onkeyup="renderListaAgendamentos()">
+            </div>
+            <select id="filterAgendamentoStatus" onchange="renderListaAgendamentos()">
+                <option value="todos">Todos Status</option>
+                <option value="pendente">Pendente</option>
+                <option value="confirmado">Confirmado</option>
+                <option value="cancelado">Cancelado</option>
+                <option value="atendido">Atendido</option>
+            </select>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Horario</th>
+                        <th>Cliente</th>
+                        <th>Veiculo</th>
+                        <th>Servico</th>
+                        <th>Status</th>
+                        <th>Acoes</th>
+                    </tr>
+                </thead>
+                <tbody id="listaAgendamentosTable">
+                    <tr><td colspan="7" class="text-center">Nenhum agendamento encontrado</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- MODAL CRIAR/EDITAR AGENDAMENTO -->
+<div id="modalAgendamento" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modalAgendamentoTitle">Novo Agendamento</h3>
+            <button class="modal-close" onclick="closeAgendamentoModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="formAgendamento" onsubmit="saveAgendamento(event)">
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Cliente *</label>
+                        <select id="agendamentoCliente" required onchange="updateVeiculoSelectAgendamento(this.value)">
+                            <option value="">Selecione um cliente</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Veiculo *</label>
+                        <select id="agendamentoVeiculo" required disabled>
+                            <option value="">Selecione um veiculo</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Data *</label>
+                        <input type="date" id="agendamentoData" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Horario *</label>
+                        <input type="time" id="agendamentoHora" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Tipo de Servico *</label>
+                    <input type="text" id="agendamentoTipo" required placeholder="Ex: Revisao, Troca de oleo, Alinhamento">
+                </div>
+                <div class="form-group">
+                    <label>Observacoes</label>
+                    <textarea id="agendamentoObservacoes" rows="3" placeholder="Informacoes adicionais sobre o agendamento"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeAgendamentoModal()">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Salvar Agendamento</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL VISUALIZAR AGENDAMENTO -->
+<div id="modalViewAgendamento" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Detalhes do Agendamento</h3>
+            <button class="modal-close" onclick="closeViewAgendamentoModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body" id="viewAgendamentoContent">
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeViewAgendamentoModal()">Fechar</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL AGENDAMENTOS DO DIA -->
+<div id="modalDiaAgendamentos" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="diaAgendamentosTitulo">Agendamentos do Dia</h3>
+            <button class="modal-close" onclick="closeDiaAgendamentosModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body" id="diaAgendamentosContent">
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeDiaAgendamentosModal()">Fechar</button>
+        </div>
+    </div>
+</div>
