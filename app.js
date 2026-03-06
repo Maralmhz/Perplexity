@@ -14,52 +14,84 @@ const AppState = {
             {
                 id: 'OS-001',
                 numero: '000001',
+                clienteId: 1,
                 cliente: 'Joao Silva',
+                veiculoId: 1,
                 veiculo: 'Fiat Uno - ABC-1234',
                 status: 'em_andamento',
                 data: '2026-03-06',
                 valorTotal: 850.00,
-                descricao: 'Troca de oleo e filtro'
+                descricao: 'Troca de oleo e filtro',
+                servicos: [
+                    { id: 1, descricao: 'Troca de oleo', valor: 450.00 },
+                    { id: 2, descricao: 'Filtro de oleo', valor: 200.00 },
+                    { id: 3, descricao: 'Filtro de ar', valor: 200.00 }
+                ]
             },
             {
                 id: 'OS-002',
                 numero: '000002',
+                clienteId: 2,
                 cliente: 'Maria Santos',
+                veiculoId: 2,
                 veiculo: 'Honda Civic - XYZ-5678',
                 status: 'aguardando',
                 data: '2026-03-06',
                 valorTotal: 1200.00,
-                descricao: 'Revisao completa'
+                descricao: 'Revisao completa',
+                servicos: [
+                    { id: 1, descricao: 'Revisao 10000km', valor: 1200.00 }
+                ]
             },
             {
                 id: 'OS-003',
                 numero: '000003',
+                clienteId: 3,
                 cliente: 'Pedro Costa',
+                veiculoId: 3,
                 veiculo: 'VW Gol - DEF-9012',
                 status: 'concluida',
                 data: '2026-03-05',
+                dataConclusao: '2026-03-05',
                 valorTotal: 450.00,
-                descricao: 'Alinhamento e balanceamento'
+                descricao: 'Alinhamento e balanceamento',
+                servicos: [
+                    { id: 1, descricao: 'Alinhamento', valor: 200.00 },
+                    { id: 2, descricao: 'Balanceamento', valor: 250.00 }
+                ]
             },
             {
                 id: 'OS-004',
                 numero: '000004',
+                clienteId: 4,
                 cliente: 'Ana Paula',
+                veiculoId: 4,
                 veiculo: 'Toyota Corolla - GHI-3456',
                 status: 'em_andamento',
                 data: '2026-03-04',
                 valorTotal: 2500.00,
-                descricao: 'Troca de embreagem'
+                descricao: 'Troca de embreagem',
+                servicos: [
+                    { id: 1, descricao: 'Kit embreagem', valor: 1800.00 },
+                    { id: 2, descricao: 'Mao de obra', valor: 700.00 }
+                ]
             },
             {
                 id: 'OS-005',
                 numero: '000005',
+                clienteId: 5,
                 cliente: 'Carlos Eduardo',
+                veiculoId: 5,
                 veiculo: 'Chevrolet Onix - JKL-7890',
                 status: 'concluida',
                 data: '2026-03-01',
+                dataConclusao: '2026-03-01',
                 valorTotal: 320.00,
-                descricao: 'Troca de pastilhas de freio'
+                descricao: 'Troca de pastilhas de freio',
+                servicos: [
+                    { id: 1, descricao: 'Pastilhas dianteiras', valor: 220.00 },
+                    { id: 2, descricao: 'Mao de obra', valor: 100.00 }
+                ]
             }
         ],
         clientes: [
@@ -70,11 +102,11 @@ const AppState = {
             { id: 5, nome: 'Carlos Eduardo', cpf: '777.888.999-00', telefone: '(31) 99999-5555' }
         ],
         veiculos: [
-            { id: 1, placa: 'ABC-1234', modelo: 'Fiat Uno', clienteId: 1 },
-            { id: 2, placa: 'XYZ-5678', modelo: 'Honda Civic', clienteId: 2 },
-            { id: 3, placa: 'DEF-9012', modelo: 'VW Gol', clienteId: 3 },
-            { id: 4, placa: 'GHI-3456', modelo: 'Toyota Corolla', clienteId: 4 },
-            { id: 5, placa: 'JKL-7890', modelo: 'Chevrolet Onix', clienteId: 5 }
+            { id: 1, placa: 'ABC-1234', modelo: 'Fiat Uno', clienteId: 1, chassis: '9BWZZZ377VT004251', ano: '2020', cor: 'Branco' },
+            { id: 2, placa: 'XYZ-5678', modelo: 'Honda Civic', clienteId: 2, chassis: '19XFC2F59KE000001', ano: '2021', cor: 'Prata' },
+            { id: 3, placa: 'DEF-9012', modelo: 'VW Gol', clienteId: 3, chassis: '9BWAA05U38P000001', ano: '2019', cor: 'Preto' },
+            { id: 4, placa: 'GHI-3456', modelo: 'Toyota Corolla', clienteId: 4, chassis: 'JTNKARFK7J3000001', ano: '2022', cor: 'Vermelho' },
+            { id: 5, placa: 'JKL-7890', modelo: 'Chevrolet Onix', clienteId: 5, chassis: '9BGKS69TOXG000001', ano: '2020', cor: 'Azul' }
         ],
         agendamentos: [
             { id: 1, clienteId: 1, veiculoId: 1, data: '2026-03-06', hora: '14:00', servico: 'Revisao', status: 'confirmado' },
@@ -94,7 +126,7 @@ const AppState = {
 };
 
 function initApp() {
-    console.log('Perplexity v3.0 - FASE 3: Clientes e Veiculos');
+    console.log('Perplexity v3.0 - FASE 4: Ordens de Servico');
     
     if (!checkAuth()) {
         window.location.href = 'login.html';
@@ -108,6 +140,7 @@ function initApp() {
     updateUserInfo();
     renderClientes();
     renderVeiculos();
+    renderOrdensServico();
     
     document.querySelectorAll('.nav-item').forEach(link => {
         link.addEventListener('click', (e) => {
@@ -115,7 +148,7 @@ function initApp() {
         });
     });
     
-    console.log('Sistema inicializado - FASE 3 ativa!');
+    console.log('Sistema inicializado - FASE 4 ativa!');
 }
 
 function checkAuth() {
@@ -154,13 +187,16 @@ function navigateTo(page) {
     if (pageElement) {
         pageElement.classList.add('active');
         AppState.currentPage = page;
+        
+        // Renderizar dados especificos da pagina
+        if (page === 'ordens-servico') {
+            renderOrdensServico();
+        }
     }
     
     if (window.innerWidth <= 768) {
         toggleSidebar();
     }
-    
-    console.log('Navegando para:', page);
 }
 
 function toggleSidebar() {
@@ -222,7 +258,7 @@ function renderRecentOS() {
             <td>${getStatusBadge(os.status)}</td>
             <td>${formatDate(os.data)}</td>
             <td>
-                <button class="btn-icon" title="Ver detalhes">
+                <button class="btn-icon" onclick="viewOS('${os.id}')" title="Ver detalhes">
                     <i class="fas fa-eye"></i>
                 </button>
             </td>
