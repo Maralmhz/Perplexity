@@ -1,6 +1,4 @@
-// ============================================
 // GERENCIAMENTO DE ESTADO GLOBAL
-// ============================================
 const AppState = {
     currentPage: 'dashboard',
     user: null,
@@ -95,56 +93,38 @@ const AppState = {
     }
 };
 
-// ============================================
-// INICIALIZACAO
-// ============================================
 function initApp() {
-    console.log('Perplexity - Sistema de Gestao Automotiva v3.0');
-    console.log('FASE 2: Login + Dashboard Avancado');
+    console.log('Perplexity v3.0 - FASE 3: Clientes e Veiculos');
     
-    // Verificar autenticacao
     if (!checkAuth()) {
         window.location.href = 'login.html';
         return;
     }
     
-    // Carregar ou inicializar dados
     loadFromLocalStorage();
-    
-    // Atualizar interface
     updateDashboard();
     updateOficinaNome();
     renderRecentOS();
     updateUserInfo();
+    renderClientes();
+    renderVeiculos();
     
-    // Previne navegacao padrao dos links
     document.querySelectorAll('.nav-item').forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
         });
     });
     
-    console.log('Sistema inicializado com sucesso!');
-    console.log('Total OS:', AppState.data.ordensServico.length);
-    console.log('Total Clientes:', AppState.data.clientes.length);
-    console.log('Total Veiculos:', AppState.data.veiculos.length);
+    console.log('Sistema inicializado - FASE 3 ativa!');
 }
 
-// ============================================
-// AUTENTICACAO
-// ============================================
 function checkAuth() {
     const user = localStorage.getItem('perplexity_user') || sessionStorage.getItem('perplexity_user');
-    
-    if (!user) {
-        return false;
-    }
-    
+    if (!user) return false;
     try {
         AppState.user = JSON.parse(user);
         return true;
     } catch (e) {
-        console.error('Erro ao verificar autenticacao:', e);
         return false;
     }
 }
@@ -158,18 +138,13 @@ function updateUserInfo() {
     }
 }
 
-// ============================================
-// NAVEGACAO
-// ============================================
 function navigateTo(page) {
     document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.remove('active');
     });
     
     const activeLink = document.querySelector(`[onclick="navigateTo('${page}')"]`);
-    if (activeLink) {
-        activeLink.classList.add('active');
-    }
+    if (activeLink) activeLink.classList.add('active');
     
     document.querySelectorAll('.page').forEach(p => {
         p.classList.remove('active');
@@ -188,24 +163,15 @@ function navigateTo(page) {
     console.log('Navegando para:', page);
 }
 
-// ============================================
-// SIDEBAR TOGGLE
-// ============================================
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebarOverlay');
-    
     sidebar.classList.toggle('active');
     overlay.classList.toggle('active');
 }
 
-// ============================================
-// DASHBOARD
-// ============================================
 function updateDashboard() {
     const { ordensServico, clientes, veiculos, agendamentos, financeiro } = AppState.data;
-    
-    console.log('Atualizando dashboard com', ordensServico.length, 'OS');
     
     const osAbertasEl = document.getElementById('osAbertas');
     const osHojeEl = document.getElementById('osHoje');
@@ -235,23 +201,13 @@ function updateDashboard() {
     
     const faturamentoMesEl = document.getElementById('faturamentoMes');
     if (faturamentoMesEl) faturamentoMesEl.textContent = formatMoney(faturamento);
-    
-    console.log('Dashboard atualizado');
 }
 
-// ============================================
-// RENDERIZAR ULTIMAS OS
-// ============================================
 function renderRecentOS() {
     const tbody = document.getElementById('recentOSTable');
-    if (!tbody) {
-        console.warn('Elemento recentOSTable nao encontrado');
-        return;
-    }
+    if (!tbody) return;
     
     const ordensServico = AppState.data.ordensServico.slice().reverse().slice(0, 5);
-    
-    console.log('Renderizando tabela com', ordensServico.length, 'OS');
     
     if (ordensServico.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhuma OS registrada ainda</td></tr>';
@@ -272,8 +228,6 @@ function renderRecentOS() {
             </td>
         </tr>
     `).join('');
-    
-    console.log('Tabela de OS renderizada:', ordensServico.length, 'registros');
 }
 
 function getStatusBadge(status) {
@@ -286,9 +240,6 @@ function getStatusBadge(status) {
     return badges[status] || status;
 }
 
-// ============================================
-// ATUALIZAR NOME DA OFICINA
-// ============================================
 function updateOficinaNome() {
     const nomeElement = document.getElementById('oficinaNome');
     if (nomeElement && AppState.oficina.nome) {
@@ -296,25 +247,17 @@ function updateOficinaNome() {
     }
 }
 
-// ============================================
-// LOGOUT
-// ============================================
 function logout() {
     if (confirm('Deseja realmente sair do sistema?')) {
         localStorage.removeItem('perplexity_user');
         sessionStorage.removeItem('perplexity_user');
         window.location.href = 'login.html';
-        console.log('Logout realizado');
     }
 }
 
-// ============================================
-// LOCAL STORAGE
-// ============================================
 function loadFromLocalStorage() {
     const savedData = localStorage.getItem('perplexity_data');
     
-    // Se nao existe dados salvos, salvar dados de exemplo
     if (!savedData) {
         console.log('Primeira execucao - Salvando dados de exemplo');
         saveToLocalStorage();
@@ -323,8 +266,6 @@ function loadFromLocalStorage() {
     
     try {
         const parsed = JSON.parse(savedData);
-        
-        // Verificar se tem dados, se nao tiver, usar dados de exemplo
         if (!parsed.ordensServico || parsed.ordensServico.length === 0) {
             console.log('LocalStorage vazio - Usando dados de exemplo');
             saveToLocalStorage();
@@ -341,15 +282,12 @@ function loadFromLocalStorage() {
 function saveToLocalStorage() {
     try {
         localStorage.setItem('perplexity_data', JSON.stringify(AppState.data));
-        console.log('Dados salvos no LocalStorage');
+        console.log('Dados salvos');
     } catch (e) {
         console.error('Erro ao salvar dados:', e);
     }
 }
 
-// ============================================
-// UTILITARIOS
-// ============================================
 function formatMoney(value) {
     return new Intl.NumberFormat('pt-BR', {
         style: 'currency',
@@ -377,14 +315,10 @@ function isCurrentMonth(dateString) {
     return date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
 }
 
-// ============================================
-// INICIALIZAR AO CARREGAR
-// ============================================
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initApp);
 } else {
     initApp();
 }
 
-// Salvar dados periodicamente
 setInterval(saveToLocalStorage, 30000);
