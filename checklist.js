@@ -56,85 +56,8 @@ const ChecklistState = {
         'Cambio',
         'Embreagem',
         'Ar condicionado'
-    ],
-    preCadastroCliente: null,
-    preCadastroVeiculo: null
+    ]
 };
-
-// FUNÇÃO DE PRÉ-CADASTRO AUTOMÁTICO
-function criarPreCadastroAutomatico() {
-    const nome = document.getElementById('checklistClienteNome')?.value.trim();
-    const cpf = document.getElementById('checklistClienteCPF')?.value.trim();
-    const placa = document.getElementById('checklistVeiculoPlaca')?.value.trim().toUpperCase();
-    const modelo = document.getElementById('checklistVeiculoModelo')?.value.trim();
-    
-    if (!nome || !placa) {
-        console.log('Nome ou placa vazios, aguardando preenchimento...');
-        return;
-    }
-    
-    // Criar ou atualizar cliente
-    let cliente = AppState.data.clientes.find(c => 
-        c.cpf === cpf || c.nome.toLowerCase() === nome.toLowerCase()
-    );
-    
-    if (!cliente && nome) {
-        cliente = {
-            id: Date.now(),
-            nome: nome,
-            cpf: cpf || '',
-            telefone: '',
-            email: '',
-            endereco: '',
-            dataCadastro: new Date().toISOString(),
-            origem: 'checklist'
-        };
-        
-        AppState.data.clientes.push(cliente);
-        ChecklistState.preCadastroCliente = cliente.id;
-        saveToLocalStorage();
-        renderClientes();
-        
-        console.log('✅ Cliente pré-cadastrado:', cliente);
-        showToast(`Cliente "${nome}" pré-cadastrado! Complete os dados na aba Clientes.`);
-    }
-    
-    // Criar ou atualizar veículo
-    let veiculo = AppState.data.veiculos.find(v => v.placa === placa);
-    
-    if (!veiculo && placa && cliente) {
-        veiculo = {
-            id: Date.now() + 1,
-            placa: placa,
-            modelo: modelo || 'Não informado',
-            clienteId: cliente.id,
-            chassis: '',
-            ano: '',
-            cor: '',
-            dataCadastro: new Date().toISOString(),
-            origem: 'checklist'
-        };
-        
-        AppState.data.veiculos.push(veiculo);
-        ChecklistState.preCadastroVeiculo = veiculo.id;
-        saveToLocalStorage();
-        renderVeiculos();
-        
-        console.log('✅ Veículo pré-cadastrado:', veiculo);
-        showToast(`Veículo "${placa}" pré-cadastrado! Complete os dados na aba Veículos.`);
-    }
-    
-    // Gerar número da OS
-    if (placa) {
-        const hoje = new Date();
-        const dia = String(hoje.getDate()).padStart(2, '0');
-        const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-        const ano = String(hoje.getFullYear()).slice(-2);
-        const placaLimpa = placa.replace(/[^A-Z0-9]/g, '');
-        const numeroOS = `${placaLimpa}-${dia}${mes}${ano}`;
-        document.getElementById('checklistNumeroOS').textContent = numeroOS;
-    }
-}
 
 function initChecklist(osId = null, veiculoId = null, clienteId = null) {
     console.log('Inicializando checklist...', { osId, veiculoId, clienteId });
@@ -155,32 +78,56 @@ function initChecklist(osId = null, veiculoId = null, clienteId = null) {
     setupNavigacaoTeclado();
     setupUploadFotos();
     setupAssinaturaCanvas();
-    setupPreCadastro();
     atualizarResumoFinanceiro();
+    popularSelectsChecklist();
 }
 
-function setupPreCadastro() {
-    // Listener para criar pré-cadastro quando preencher nome do cliente
-    const inputNome = document.getElementById('checklistClienteNome');
-    const inputCPF = document.getElementById('checklistClienteCPF');
-    const inputPlaca = document.getElementById('checklistVeiculoPlaca');
-    const inputModelo = document.getElementById('checklistVeiculoModelo');
+function popularSelectsChecklist() {
+    const selectCliente = document.getElementById('checklistClienteSelect');
+    const selectVeiculo = document.getElementById('checklistVeiculoSelect');
     
-    if (inputNome) {
-        inputNome.addEventListener('blur', criarPreCadastroAutomatico);
+    if (selectCliente && AppState.data.clientes) {
+        selectCliente.innerHTML = '<option value="">Selecione um cliente</option>' +
+            AppState.data.clientes.map(c => 
+                `<option value="${c.id}">${c.nome}</option>`
+            ).join('');
     }
-    if (inputCPF) {
-        inputCPF.addEventListener('blur', criarPreCadastroAutomatico);
+}
+
+function atualizarVeiculosChecklist(clienteId) {
+    const selectVeiculo = document.getElementById('checklistVeiculoSelect');
+    if (!selectVeiculo) return;
+    
+    if (!clienteId) {
+        selectVeiculo.innerHTML = '<option value="">Selecione um veículo</option>';
+        selectVeiculo.disabled = true;
+        return;
     }
-    if (inputPlaca) {
-        inputPlaca.addEventListener('blur', criarPreCadastroAutomatico);
-        inputPlaca.addEventListener('input', (e) => {
-            e.target.value = e.target.value.toUpperCase();
-        });
-    }
-    if (inputModelo) {
-        inputModelo.addEventListener('blur', criarPreCadastroAutomatico);
-    }
+    
+    const veiculos = AppState.data.veiculos.filter(v => v.clienteId == clienteId);
+    selectVeiculo.innerHTML = '<option value="">Selecione um veículo</option>' +
+        veiculos.map(v => 
+            `<option value="${v.id}">${v.modelo} - ${v.placa}</option>`
+        ).join('');
+    selectVeiculo.disabled = false;
+}
+
+function gerarNumeroOS() {
+    const veiculoId = document.getElementById('checklistVeiculoSelect')?.value;
+    if (!veiculoId) return;
+    
+    const veiculo = AppState.data.veiculos.find(v => v.id == veiculoId);
+    if (!veiculo) return;
+    
+    const hoje = new Date();
+    const dia = String(hoje.getDate()).padStart(2, '0');
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    const ano = String(hoje.getFullYear()).slice(-2);
+    
+    const placa = veiculo.placa.replace(/[^A-Z0-9]/g, '');
+    const numeroOS = `${placa}-${dia}${mes}${ano}`;
+    
+    document.getElementById('checklistNumeroOS').textContent = numeroOS;
 }
 
 function criarNovoChecklist(osId = null, veiculoId = null, clienteId = null) {
@@ -237,7 +184,9 @@ function criarNovoChecklist(osId = null, veiculoId = null, clienteId = null) {
         statusRegulacao: 'pendente',
         seguradora: '',
         regulador: '',
-        dataRegulacao: null
+        dataRegulacao: null,
+        documentoRegulacao: null,
+        fotoVistoria: null
     };
 }
 
@@ -659,24 +608,15 @@ function toggleCombustivel(tipo) {
 }
 
 function salvarChecklist() {
-    // Garantir pré-cadastro antes de salvar
-    criarPreCadastroAutomatico();
-    
     const checklist = {
         ...ChecklistState.checklistAtual,
-        clienteId: ChecklistState.preCadastroCliente,
-        veiculoId: ChecklistState.preCadastroVeiculo,
+        clienteId: document.getElementById('checklistClienteSelect')?.value,
+        veiculoId: document.getElementById('checklistVeiculoSelect')?.value,
         numeroOS: document.getElementById('checklistNumeroOS')?.textContent,
         hodometro: document.getElementById('hodometro')?.value,
         nivelCombustivel: parseInt(document.getElementById('nivelCombustivel')?.value),
         observacoes: document.getElementById('observacoes')?.value,
         itens: coletarItensChecklist(),
-        inspecaoVisual: {
-            lataria: document.getElementById('inspecaoLataria')?.value || '',
-            pneus: document.getElementById('inspecaoPneus')?.value || '',
-            vidros: document.getElementById('inspecaoVidros')?.value || '',
-            interior: document.getElementById('inspecaoInterior')?.value || ''
-        },
         assinaturaCliente: document.getElementById('canvasAssinaturaCliente')?.toDataURL(),
         assinaturaTecnico: document.getElementById('canvasAssinaturaTecnico')?.toDataURL(),
         status: 'completo'
