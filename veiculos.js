@@ -34,17 +34,22 @@ function renderVeiculos() {
 }
 
 function openVeiculoModal(veiculoId = null) {
-    const modal = document.getElementById('modalVeiculo');
-    const title = document.getElementById('modalVeiculoTitle');
+    const modal = document.getElementById('veiculoModal');
+    const title = document.getElementById('veiculoModalTitle');
     const selectCliente = document.getElementById('veiculoCliente');
     
+    if (!modal || !title || !selectCliente) {
+        console.error('Elementos do modal de veículo não encontrados');
+        return;
+    }
+
     // Preencher select de clientes
     selectCliente.innerHTML = '<option value="">Selecione um cliente</option>' + 
-        AppState.data.clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+        (AppState.data.clientes || []).map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
     
     if (veiculoId) {
         editingVeiculoId = veiculoId;
-        const veiculo = AppState.data.veiculos.find(v => v.id === veiculoId);
+        const veiculo = (AppState.data.veiculos || []).find(v => v.id === veiculoId);
         if (veiculo) {
             title.textContent = 'Editar Veiculo';
             document.getElementById('veiculoPlaca').value = veiculo.placa || '';
@@ -57,19 +62,23 @@ function openVeiculoModal(veiculoId = null) {
     } else {
         editingVeiculoId = null;
         title.textContent = 'Novo Veiculo';
-        document.getElementById('formVeiculo').reset();
-        selectCliente.innerHTML = '<option value="">Selecione um cliente</option>' + 
-            AppState.data.clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+        document.getElementById('veiculoPlaca').value = '';
+        document.getElementById('veiculoModelo').value = '';
+        document.getElementById('veiculoCliente').value = '';
+        document.getElementById('veiculoChassis').value = '';
+        document.getElementById('veiculoAno').value = '';
+        document.getElementById('veiculoCor').value = '';
     }
     
-    modal.style.display = 'flex';
+    modal.classList.add('active');
 }
 
 function closeVeiculoModal() {
-    document.getElementById('modalVeiculo').style.display = 'none';
-    document.getElementById('formVeiculo').reset();
+    const modal = document.getElementById('veiculoModal');
+    if (modal) modal.classList.remove('active');
     editingVeiculoId = null;
 }
+
 
 function saveVeiculo(event) {
     event.preventDefault();
