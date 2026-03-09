@@ -8,10 +8,10 @@ const ChecklistState = {
         'Lanterna',
         'Retrovisor',
         'Para-lama',
-        'Capô',
+        'Capo',
         'Porta',
         'Vidro',
-        'Maçaneta',
+        'Macaneta',
         'Spoiler',
         'Grade frontal',
         'Para-choque',
@@ -19,31 +19,43 @@ const ChecklistState = {
         'Pastilha de freio',
         'Disco de freio',
         'Bateria',
-        'Filtro de óleo',
+        'Filtro de oleo',
         'Filtro de ar',
         'Correia dentada',
-        'Vela de ignição',
-        'Óleo motor',
+        'Vela de ignicao',
+        'Oleo motor',
         'Pneu',
         'Alinhamento',
-        'Balanceamento'
+        'Balanceamento',
+        'Suspensao',
+        'Cambio',
+        'Embreagem',
+        'Radiador',
+        'Bomba dagua',
+        'Alternador',
+        'Motor de partida'
     ],
     servicosComuns: [
-        'Mão de obra',
+        'Mao de obra',
         'Pintura',
         'Funilaria',
-        'Mecânica geral',
-        'Troca de óleo',
-        'Revisão',
+        'Mecanica geral',
+        'Troca de oleo',
+        'Revisao',
         'Alinhamento',
         'Balanceamento',
-        'Diagnóstico',
-        'Instalação',
-        'Remoção',
+        'Diagnostico',
+        'Instalacao',
+        'Remocao',
         'Polimento',
         'Lavagem',
-        'Higienização',
-        'Elétrica'
+        'Higienizacao',
+        'Eletrica',
+        'Suspensao',
+        'Freios',
+        'Cambio',
+        'Embreagem',
+        'Ar condicionado'
     ]
 };
 
@@ -51,7 +63,6 @@ function initChecklist(osId = null, veiculoId = null, clienteId = null) {
     console.log('Inicializando checklist...', { osId, veiculoId, clienteId });
     
     if (osId) {
-        // Carrega checklist existente
         const checklistExistente = AppState.data.checklists?.find(c => c.osId === osId);
         if (checklistExistente) {
             ChecklistState.checklistAtual = checklistExistente;
@@ -68,6 +79,55 @@ function initChecklist(osId = null, veiculoId = null, clienteId = null) {
     setupUploadFotos();
     setupAssinaturaCanvas();
     atualizarResumoFinanceiro();
+    popularSelectsChecklist();
+}
+
+function popularSelectsChecklist() {
+    const selectCliente = document.getElementById('checklistClienteSelect');
+    const selectVeiculo = document.getElementById('checklistVeiculoSelect');
+    
+    if (selectCliente && AppState.data.clientes) {
+        selectCliente.innerHTML = '<option value="">Selecione um cliente</option>' +
+            AppState.data.clientes.map(c => 
+                `<option value="${c.id}">${c.nome}</option>`
+            ).join('');
+    }
+}
+
+function atualizarVeiculosChecklist(clienteId) {
+    const selectVeiculo = document.getElementById('checklistVeiculoSelect');
+    if (!selectVeiculo) return;
+    
+    if (!clienteId) {
+        selectVeiculo.innerHTML = '<option value="">Selecione um veículo</option>';
+        selectVeiculo.disabled = true;
+        return;
+    }
+    
+    const veiculos = AppState.data.veiculos.filter(v => v.clienteId == clienteId);
+    selectVeiculo.innerHTML = '<option value="">Selecione um veículo</option>' +
+        veiculos.map(v => 
+            `<option value="${v.id}">${v.modelo} - ${v.placa}</option>`
+        ).join('');
+    selectVeiculo.disabled = false;
+}
+
+function gerarNumeroOS() {
+    const veiculoId = document.getElementById('checklistVeiculoSelect')?.value;
+    if (!veiculoId) return;
+    
+    const veiculo = AppState.data.veiculos.find(v => v.id == veiculoId);
+    if (!veiculo) return;
+    
+    const hoje = new Date();
+    const dia = String(hoje.getDate()).padStart(2, '0');
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    const ano = String(hoje.getFullYear()).slice(-2);
+    
+    const placa = veiculo.placa.replace(/[^A-Z0-9]/g, '');
+    const numeroOS = `${placa}-${dia}${mes}${ano}`;
+    
+    document.getElementById('checklistNumeroOS').textContent = numeroOS;
 }
 
 function criarNovoChecklist(osId = null, veiculoId = null, clienteId = null) {
@@ -79,13 +139,13 @@ function criarNovoChecklist(osId = null, veiculoId = null, clienteId = null) {
         dataEntrada: new Date().toISOString(),
         hodometro: '',
         nivelCombustivel: 4,
+        tipoCombustivel: [],
         itens: {
             estepe: false,
             macaco: false,
             chaveRoda: false,
             triangulo: false,
-            gasolina: false,
-            etanol: false,
+            extintor: false,
             radio: false,
             antena: false,
             acendedor: false,
@@ -101,7 +161,15 @@ function criarNovoChecklist(osId = null, veiculoId = null, clienteId = null) {
             abs: false,
             airbag: false,
             automatico: false,
-            tracao4x4: false
+            direcaoHidraulica: false,
+            alarme: false
+        },
+        luzesAvarias: [],
+        inspecaoVisual: {
+            lataria: '',
+            pneus: '',
+            vidros: '',
+            interior: ''
         },
         observacoes: '',
         fotos: [],
@@ -123,39 +191,30 @@ function criarNovoChecklist(osId = null, veiculoId = null, clienteId = null) {
 }
 
 function setupAutoComplete() {
-    // Autocomplete para PEÇAS
-    const inputsPecas = document.querySelectorAll('.input-peca-desc');
-    inputsPecas.forEach(input => {
-        input.addEventListener('input', (e) => {
-            const valor = e.target.value.toLowerCase();
-            if (valor.length < 2) return;
-            
-            const sugestoes = ChecklistState.pecasComuns.filter(p => 
-                p.toLowerCase().includes(valor)
-            );
-            
-            mostrarSugestoes(e.target, sugestoes);
-        });
-    });
-    
-    // Autocomplete para SERVIÇOS
-    const inputsServicos = document.querySelectorAll('.input-servico-desc');
-    inputsServicos.forEach(input => {
-        input.addEventListener('input', (e) => {
-            const valor = e.target.value.toLowerCase();
-            if (valor.length < 2) return;
-            
-            const sugestoes = ChecklistState.servicosComuns.filter(s => 
-                s.toLowerCase().includes(valor)
-            );
-            
-            mostrarSugestoes(e.target, sugestoes);
-        });
+    setupAutoCompleteGenerico('.input-peca-desc', ChecklistState.pecasComuns);
+    setupAutoCompleteGenerico('.input-servico-desc', ChecklistState.servicosComuns);
+}
+
+function setupAutoCompleteGenerico(seletor, lista) {
+    document.addEventListener('input', (e) => {
+        if (!e.target.matches(seletor)) return;
+        
+        const valor = removerAcentos(e.target.value.toLowerCase());
+        if (valor.length < 2) return;
+        
+        const sugestoes = lista.filter(item => 
+            removerAcentos(item.toLowerCase()).includes(valor)
+        );
+        
+        mostrarSugestoes(e.target, sugestoes);
     });
 }
 
+function removerAcentos(texto) {
+    return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
 function mostrarSugestoes(input, sugestoes) {
-    // Remove sugestões anteriores
     const suggestoesExistentes = input.parentElement.querySelector('.autocomplete-sugestoes');
     if (suggestoesExistentes) {
         suggestoesExistentes.remove();
@@ -203,7 +262,6 @@ function mostrarSugestoes(input, sugestoes) {
     input.parentElement.style.position = 'relative';
     input.parentElement.appendChild(divSugestoes);
     
-    // Remove ao clicar fora
     setTimeout(() => {
         document.addEventListener('click', function removerSugestoes(e) {
             if (!divSugestoes.contains(e.target) && e.target !== input) {
@@ -218,7 +276,6 @@ function setupNavigacaoTeclado() {
     document.addEventListener('keydown', (e) => {
         const target = e.target;
         
-        // TAB ou ENTER em inputs de peças/serviços
         if ((e.key === 'Tab' || e.key === 'Enter') && 
             (target.classList.contains('input-peca-desc') || 
              target.classList.contains('input-peca-valor') ||
@@ -228,13 +285,11 @@ function setupNavigacaoTeclado() {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 
-                // Se está no valor, adiciona nova linha
                 if (target.classList.contains('input-peca-valor')) {
                     adicionarLinhaPeca();
                 } else if (target.classList.contains('input-servico-valor')) {
                     adicionarLinhaServico();
                 } else {
-                    // Move para o próximo campo (valor)
                     const proximoCampo = target.parentElement.parentElement.querySelector(
                         target.classList.contains('input-peca-desc') ? '.input-peca-valor' : '.input-servico-valor'
                     );
@@ -249,7 +304,6 @@ function adicionarLinhaServico() {
     const tbody = document.getElementById('tabelaServicos');
     const novaLinha = criarLinhaServico();
     tbody.appendChild(novaLinha);
-    setupAutoComplete();
     const primeiroInput = novaLinha.querySelector('.input-servico-desc');
     if (primeiroInput) primeiroInput.focus();
     atualizarResumoFinanceiro();
@@ -259,7 +313,6 @@ function adicionarLinhaPeca() {
     const tbody = document.getElementById('tabelaPecas');
     const novaLinha = criarLinhaPeca();
     tbody.appendChild(novaLinha);
-    setupAutoComplete();
     const primeiroInput = novaLinha.querySelector('.input-peca-desc');
     if (primeiroInput) primeiroInput.focus();
     atualizarResumoFinanceiro();
@@ -367,11 +420,17 @@ function atualizarResumoFinanceiro() {
     const totalPendente = (totalServicos + totalPecas) - totalRegulado;
     const totalGeral = totalServicos + totalPecas;
     
-    document.getElementById('totalServicos').textContent = formatMoney(totalServicos);
-    document.getElementById('totalPecas').textContent = formatMoney(totalPecas);
-    document.getElementById('totalRegulado').textContent = formatMoney(totalRegulado);
-    document.getElementById('totalPendente').textContent = formatMoney(totalPendente);
-    document.getElementById('totalGeral').textContent = formatMoney(totalGeral);
+    const elTotalServicos = document.getElementById('totalServicos');
+    const elTotalPecas = document.getElementById('totalPecas');
+    const elTotalRegulado = document.getElementById('totalRegulado');
+    const elTotalPendente = document.getElementById('totalPendente');
+    const elTotalGeral = document.getElementById('totalGeral');
+    
+    if (elTotalServicos) elTotalServicos.textContent = formatMoney(totalServicos);
+    if (elTotalPecas) elTotalPecas.textContent = formatMoney(totalPecas);
+    if (elTotalRegulado) elTotalRegulado.textContent = formatMoney(totalRegulado);
+    if (elTotalPendente) elTotalPendente.textContent = formatMoney(totalPendente);
+    if (elTotalGeral) elTotalGeral.textContent = formatMoney(totalGeral);
 }
 
 function coletarServicos() {
@@ -538,10 +597,22 @@ function limparAssinatura(canvasId) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
+function toggleLuzPainel(luz) {
+    const btn = event.target.closest('.luz-painel-btn');
+    btn.classList.toggle('active');
+}
+
+function toggleCombustivel(tipo) {
+    const btn = event.target.closest('.combustivel-btn');
+    btn.classList.toggle('active');
+}
+
 function salvarChecklist() {
-    // Coleta dados do checklist
     const checklist = {
         ...ChecklistState.checklistAtual,
+        clienteId: document.getElementById('checklistClienteSelect')?.value,
+        veiculoId: document.getElementById('checklistVeiculoSelect')?.value,
+        numeroOS: document.getElementById('checklistNumeroOS')?.textContent,
         hodometro: document.getElementById('hodometro')?.value,
         nivelCombustivel: parseInt(document.getElementById('nivelCombustivel')?.value),
         observacoes: document.getElementById('observacoes')?.value,
@@ -551,7 +622,6 @@ function salvarChecklist() {
         status: 'completo'
     };
     
-    // Coleta peças e serviços
     const servicosEPecas = {
         servicos: coletarServicos(),
         pecas: coletarPecas(),
@@ -561,7 +631,6 @@ function salvarChecklist() {
         dataRegulacao: document.getElementById('dataRegulacao')?.value
     };
     
-    // Salva no AppState
     if (!AppState.data.checklists) {
         AppState.data.checklists = [];
     }
@@ -599,7 +668,6 @@ function coletarItensChecklist() {
 
 function gerarPDF() {
     showToast('Gerando PDF... (em desenvolvimento)');
-    // Implementar geração de PDF com pdfmake
 }
 
 if (document.readyState === 'loading') {
