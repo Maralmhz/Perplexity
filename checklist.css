@@ -1,0 +1,367 @@
+/* ESTILOS DO CHECKLIST */
+
+.checklist-container {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.checklist-header {
+    background: linear-gradient(135deg, var(--primary-color, #FF6B35) 0%, var(--secondary-color, #004E89) 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.checklist-header h2 {
+    margin: 0 0 10px 0;
+}
+
+.checklist-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    font-size: 0.9em;
+}
+
+.checklist-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.checklist-tab {
+    padding: 12px 24px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-size: 16px;
+    color: #666;
+    transition: all 0.3s;
+}
+
+.checklist-tab.active {
+    color: var(--primary-color, #FF6B35);
+    border-bottom-color: var(--primary-color, #FF6B35);
+    font-weight: 600;
+}
+
+.checklist-tab:hover {
+    color: var(--primary-color, #FF6B35);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.checklist-section {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.checklist-section h3 {
+    margin-top: 0;
+    color: var(--primary-color, #FF6B35);
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 10px;
+}
+
+.checklist-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.checklist-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.checklist-item:hover {
+    background: #e9ecef;
+}
+
+.checklist-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.checklist-item label {
+    cursor: pointer;
+    user-select: none;
+    flex: 1;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #333;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group input[type="date"],
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.form-group textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.combustivel-slider {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.combustivel-slider input[type="range"] {
+    flex: 1;
+}
+
+.combustivel-visual {
+    display: flex;
+    gap: 4px;
+    height: 30px;
+}
+
+.combustivel-bar {
+    width: 20px;
+    background: #ddd;
+    border-radius: 2px;
+    transition: background 0.3s;
+}
+
+.combustivel-bar.filled {
+    background: linear-gradient(180deg, #4CAF50 0%, #45a049 100%);
+}
+
+.foto-upload {
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.foto-upload:hover {
+    border-color: var(--primary-color, #FF6B35);
+    background: #f8f9fa;
+}
+
+.foto-upload input[type="file"] {
+    display: none;
+}
+
+.galeria-fotos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.assinatura-canvas {
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    cursor: crosshair;
+    background: white;
+}
+
+.assinatura-controles {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+}
+
+.tabela-pecas-servicos {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.tabela-pecas-servicos th {
+    background: var(--secondary-color, #004E89);
+    color: white;
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+}
+
+.tabela-pecas-servicos td {
+    padding: 10px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.tabela-pecas-servicos tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.tabela-pecas-servicos input[type="text"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.tabela-pecas-servicos input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.tabela-pecas-servicos .btn-icon {
+    padding: 6px 10px;
+}
+
+.tabela-total {
+    background: #f8f9fa;
+    font-weight: 600;
+    font-size: 1.1em;
+}
+
+.resumo-financeiro {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+.resumo-financeiro h4 {
+    margin-top: 0;
+    color: var(--primary-color, #FF6B35);
+}
+
+.resumo-linha {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #ddd;
+}
+
+.resumo-linha.total {
+    font-size: 1.3em;
+    font-weight: 700;
+    color: var(--primary-color, #FF6B35);
+    border-bottom: none;
+    margin-top: 10px;
+}
+
+.autocomplete-sugestoes {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+.btn-adicionar-linha {
+    background: var(--primary-color, #FF6B35);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 10px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-adicionar-linha:hover {
+    opacity: 0.9;
+}
+
+.checklist-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    justify-content: flex-end;
+}
+
+.btn-primary {
+    background: var(--primary-color, #FF6B35);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.btn-primary:hover {
+    opacity: 0.9;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+@media (max-width: 768px) {
+    .checklist-container {
+        padding: 10px;
+    }
+    
+    .checklist-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .checklist-tabs {
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    .tabela-pecas-servicos {
+        font-size: 14px;
+    }
+    
+    .checklist-actions {
+        flex-direction: column;
+    }
+    
+    .checklist-actions button {
+        width: 100%;
+    }
+}
