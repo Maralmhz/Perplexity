@@ -7,16 +7,14 @@
 }
 
 .checklist-header {
-    background: linear-gradient(135deg, var(--primary-color, #FF6B35) 0%, var(--secondary-color, #004E89) 100%);
+    background: linear-gradient(135deg, var(--primary-color, #0066cc) 0%, var(--secondary-color, #00509e) 100%);
     color: white;
     padding: 20px;
     border-radius: 8px;
     margin-bottom: 20px;
 }
 
-.checklist-header h2 {
-    margin: 0 0 10px 0;
-}
+.checklist-header h2 { margin: 0 0 10px 0; }
 
 .checklist-info {
     display: grid;
@@ -47,41 +45,35 @@
 }
 
 .checklist-tab.active {
-    color: var(--primary-color, #FF6B35);
-    border-bottom-color: var(--primary-color, #FF6B35);
+    color: var(--primary-color, #0066cc);
+    border-bottom-color: var(--primary-color, #0066cc);
     font-weight: 600;
 }
 
-.checklist-tab:hover {
-    color: var(--primary-color, #FF6B35);
-}
+.checklist-tab:hover { color: var(--primary-color, #0066cc); }
 
-.tab-content {
-    display: none;
-}
-
-.tab-content.active {
-    display: block;
-}
+.tab-content { display: none; }
+.tab-content.active { display: block; }
 
 .checklist-section {
     background: white;
-    border-radius: 8px;
+    border-radius: 12px;
     padding: 20px;
     margin-bottom: 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
 .checklist-section h3 {
     margin-top: 0;
-    color: var(--primary-color, #FF6B35);
+    color: var(--primary-color, #0066cc);
     border-bottom: 2px solid #e0e0e0;
     padding-bottom: 10px;
+    font-size: 16px;
 }
 
 .checklist-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 12px;
     margin-top: 15px;
 }
@@ -92,14 +84,12 @@
     gap: 12px;
     padding: 12px;
     background: #f8f9fa;
-    border-radius: 6px;
+    border-radius: 8px;
     transition: background 0.2s;
-    min-height: 48px;
+    min-height: 50px;
 }
 
-.checklist-item:hover {
-    background: #e9ecef;
-}
+.checklist-item:hover { background: #e9ecef; }
 
 .checklist-item input[type="checkbox"] {
     width: 24px;
@@ -115,67 +105,78 @@
     font-size: 15px;
 }
 
-.form-group {
-    margin-bottom: 15px;
+/* ---- FORM GROUPS ---- */
+.checklist-section .form-group {
+    margin-bottom: 16px;
 }
 
-.form-group label {
+.checklist-section .form-group label {
     display: block;
-    margin-bottom: 5px;
-    font-weight: 500;
+    margin-bottom: 6px;
+    font-weight: 600;
     color: #333;
-}
-
-.form-group input[type="text"],
-.form-group input[type="number"],
-.form-group input[type="date"],
-.form-group textarea,
-.form-group select {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
     font-size: 14px;
 }
 
-.form-group textarea {
+.checklist-section .form-group input[type="text"],
+.checklist-section .form-group input[type="number"],
+.checklist-section .form-group input[type="date"],
+.checklist-section .form-group textarea,
+.checklist-section .form-group select {
+    width: 100%;
+    padding: 11px 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 15px;
+    transition: border-color 0.2s;
+}
+
+.checklist-section .form-group input:focus,
+.checklist-section .form-group textarea:focus,
+.checklist-section .form-group select:focus {
+    outline: none;
+    border-color: var(--primary-color, #0066cc);
+}
+
+.checklist-section .form-group textarea {
     min-height: 100px;
     resize: vertical;
 }
 
-.form-row {
+/* form-row: lado a lado no desktop, coluna no mobile */
+.checklist-section .form-row {
     display: flex;
-    gap: 15px;
-    margin-bottom: 15px;
+    gap: 16px;
+    margin-bottom: 16px;
 }
 
-.form-row .form-group {
+.checklist-section .form-row .form-group {
     flex: 1;
     margin-bottom: 0;
 }
 
 /* =============================================
-   COMBUSTIVEL - CORRIGIDO MOBILE
+   COMBUSTIVEL - MOBILE FIRST
    ============================================= */
 
 .combustivel-slider {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 14px;
     margin-top: 8px;
 }
 
 .combustivel-slider input[type="range"] {
     width: 100%;
-    height: 8px;
+    height: 10px;
     accent-color: #4CAF50;
     cursor: pointer;
 }
 
 .combustivel-visual {
     display: flex;
-    gap: 6px;
-    height: 36px;
+    gap: 5px;
+    height: 40px;
     align-items: flex-end;
 }
 
@@ -185,18 +186,20 @@
     border-radius: 4px;
     transition: background 0.3s;
     min-width: 0;
+    min-height: 10px;
 }
 
 .combustivel-bar.filled {
     background: linear-gradient(180deg, #4CAF50 0%, #388e3c 100%);
 }
 
-/* Tipos de combustivel - GRID mobile-first */
+/* BOTOES COMBUSTIVEL - grid 3 colunas, bem grandes */
 .combustivel-tipos {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin-top: 12px;
+    gap: 12px;
+    margin-top: 14px;
+    width: 100%;
 }
 
 .combustivel-btn {
@@ -204,59 +207,63 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 14px 8px;
+    gap: 8px;
+    padding: 18px 10px;
     border: 2px solid #ddd;
     background: white;
-    border-radius: 12px;
+    border-radius: 14px;
     cursor: pointer;
     transition: all 0.25s ease;
     font-size: 13px;
     font-weight: 600;
     color: #555;
-    min-height: 72px;
+    min-height: 80px;
+    width: 100%;
     text-align: center;
-    line-height: 1.2;
+    box-sizing: border-box;
 }
 
 .combustivel-btn i {
-    font-size: 22px;
+    font-size: 24px;
     color: #888;
     transition: color 0.25s;
+    display: block;
+}
+
+.combustivel-btn span {
+    display: block;
+    line-height: 1.2;
 }
 
 .combustivel-btn:hover {
-    border-color: var(--primary-color, #FF6B35);
-    background: #fff5f0;
+    border-color: var(--primary-color, #0066cc);
+    background: #f0f6ff;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(255,107,53,0.15);
+    box-shadow: 0 4px 12px rgba(0,102,204,0.15);
 }
 
-.combustivel-btn:hover i {
-    color: var(--primary-color, #FF6B35);
-}
+.combustivel-btn:hover i { color: var(--primary-color, #0066cc); }
 
 .combustivel-btn.active {
-    background: linear-gradient(135deg, var(--primary-color, #FF6B35), #e55a2b);
-    border-color: var(--primary-color, #FF6B35);
+    background: linear-gradient(135deg, var(--primary-color, #0066cc), var(--secondary-color, #00509e));
+    border-color: var(--primary-color, #0066cc);
     color: white;
-    box-shadow: 0 4px 16px rgba(255,107,53,0.35);
+    box-shadow: 0 4px 16px rgba(0,102,204,0.35);
     transform: translateY(-2px);
 }
 
-.combustivel-btn.active i {
-    color: white;
-}
+.combustivel-btn.active i { color: white; }
 
 /* =============================================
-   LUZES DO PAINEL - CORRIGIDO MOBILE
+   LUZES DO PAINEL - MOBILE FIRST
    ============================================= */
 
 .luzes-painel-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
+    gap: 12px;
     margin-top: 15px;
+    width: 100%;
 }
 
 .luz-painel-btn {
@@ -268,17 +275,20 @@
     padding: 16px 8px;
     border: 2px solid #ddd;
     background: white;
-    border-radius: 12px;
+    border-radius: 14px;
     cursor: pointer;
     transition: all 0.25s ease;
-    min-height: 88px;
+    min-height: 90px;
+    width: 100%;
     text-align: center;
+    box-sizing: border-box;
 }
 
 .luz-painel-btn i {
     font-size: 26px;
     color: #666;
     transition: color 0.25s;
+    display: block;
 }
 
 .luz-painel-btn span {
@@ -286,6 +296,7 @@
     font-weight: 600;
     color: #666;
     line-height: 1.2;
+    display: block;
 }
 
 .luz-painel-btn:hover {
@@ -303,13 +314,12 @@
 }
 
 .luz-painel-btn.active i,
-.luz-painel-btn.active span {
-    color: white;
-}
+.luz-painel-btn.active span { color: white; }
 
+/* ---- INSPECAO VISUAL ---- */
 .inspecao-visual-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 15px;
     margin-top: 15px;
 }
@@ -317,37 +327,39 @@
 .inspecao-item {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 6px;
 }
 
 .inspecao-item label {
-    font-weight: 500;
+    font-weight: 600;
     color: #333;
+    font-size: 14px;
 }
 
 .inspecao-item input {
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    padding: 10px 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 15px;
+    width: 100%;
 }
 
+/* ---- FOTO UPLOAD ---- */
 .foto-upload {
     border: 2px dashed #ddd;
-    border-radius: 8px;
-    padding: 20px;
+    border-radius: 12px;
+    padding: 30px 20px;
     text-align: center;
     cursor: pointer;
     transition: all 0.3s;
 }
 
 .foto-upload:hover {
-    border-color: var(--primary-color, #FF6B35);
-    background: #f8f9fa;
+    border-color: var(--primary-color, #0066cc);
+    background: #f0f6ff;
 }
 
-.foto-upload input[type="file"] {
-    display: none;
-}
+.foto-upload input[type="file"] { display: none; }
 
 .galeria-fotos {
     display: flex;
@@ -356,9 +368,10 @@
     margin-top: 15px;
 }
 
+/* ---- ASSINATURA ---- */
 .assinatura-canvas {
     border: 2px solid #ddd;
-    border-radius: 4px;
+    border-radius: 8px;
     cursor: crosshair;
     background: white;
     width: 100%;
@@ -371,6 +384,7 @@
     gap: 10px;
 }
 
+/* ---- TABELA PECAS/SERVICOS ---- */
 .tabela-pecas-servicos {
     width: 100%;
     border-collapse: collapse;
@@ -378,7 +392,7 @@
 }
 
 .tabela-pecas-servicos th {
-    background: var(--secondary-color, #004E89);
+    background: var(--secondary-color, #00509e);
     color: white;
     padding: 12px;
     text-align: left;
@@ -390,9 +404,7 @@
     border-bottom: 1px solid #e0e0e0;
 }
 
-.tabela-pecas-servicos tbody tr:hover {
-    background: #f8f9fa;
-}
+.tabela-pecas-servicos tbody tr:hover { background: #f8f9fa; }
 
 .tabela-pecas-servicos input[type="text"] {
     width: 100%;
@@ -407,9 +419,7 @@
     cursor: pointer;
 }
 
-.tabela-pecas-servicos .btn-icon {
-    padding: 6px 10px;
-}
+.tabela-pecas-servicos .btn-icon { padding: 6px 10px; }
 
 .tabela-total {
     background: #f8f9fa;
@@ -417,16 +427,17 @@
     font-size: 1.1em;
 }
 
+/* ---- RESUMO FINANCEIRO ---- */
 .resumo-financeiro {
     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
     padding: 20px;
-    border-radius: 8px;
+    border-radius: 10px;
     margin-top: 20px;
 }
 
 .resumo-financeiro h4 {
     margin-top: 0;
-    color: var(--primary-color, #FF6B35);
+    color: var(--primary-color, #0066cc);
 }
 
 .resumo-linha {
@@ -439,74 +450,44 @@
 .resumo-linha.total {
     font-size: 1.3em;
     font-weight: 700;
-    color: var(--primary-color, #FF6B35);
+    color: var(--primary-color, #0066cc);
     border-bottom: none;
     margin-top: 10px;
 }
 
-.autocomplete-sugestoes {
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    max-height: 200px;
-    overflow-y: auto;
-    z-index: 1000;
-}
-
+/* ---- BOTOES ACAO ---- */
 .btn-adicionar-linha {
-    background: var(--primary-color, #FF6B35);
+    background: var(--primary-color, #0066cc);
     color: white;
     border: none;
-    padding: 10px 20px;
-    border-radius: 4px;
+    padding: 12px 20px;
+    border-radius: 8px;
     cursor: pointer;
-    margin-top: 10px;
-    font-size: 14px;
-    display: flex;
+    margin-top: 12px;
+    font-size: 15px;
+    display: inline-flex;
     align-items: center;
     gap: 8px;
-}
-
-.btn-adicionar-linha:hover {
-    opacity: 0.9;
-}
-
-.checklist-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 20px;
-    justify-content: flex-end;
-    flex-wrap: wrap;
-}
-
-.btn-primary {
-    background: var(--primary-color, #FF6B35);
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 16px;
     font-weight: 600;
 }
 
-.btn-primary:hover {
-    opacity: 0.9;
+.btn-adicionar-linha:hover { opacity: 0.9; }
+
+.checklist-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    padding-bottom: 100px;
 }
 
-.btn-secondary {
-    background: #6c757d;
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 4px;
-    cursor: pointer;
+.checklist-actions .btn-primary,
+.checklist-actions .btn-secondary {
+    padding: 14px 28px;
     font-size: 16px;
-}
-
-.btn-secondary:hover {
-    background: #5a6268;
+    font-weight: 700;
+    border-radius: 10px;
 }
 
 .observacoes-sugestao {
@@ -516,23 +497,30 @@
     margin-top: 5px;
 }
 
-/* =============================================
-   MOBILE: AJUSTES GERAIS
-   ============================================= */
+.autocomplete-sugestoes {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+}
 
+/* =============================================
+   MOBILE: MAX 768px
+   ============================================= */
 @media (max-width: 768px) {
-    .checklist-container {
-        padding: 12px;
-    }
+    .checklist-container { padding: 12px; }
 
     /* form-row vira coluna no mobile */
-    .form-row {
+    .checklist-section .form-row {
         flex-direction: column;
         gap: 0;
     }
 
-    .form-row .form-group {
-        margin-bottom: 15px;
+    .checklist-section .form-row .form-group {
+        margin-bottom: 14px;
     }
 
     .checklist-grid {
@@ -549,28 +537,23 @@
         height: 28px;
     }
 
-    .checklist-item label {
-        font-size: 16px;
-    }
+    .checklist-item label { font-size: 15px; }
 
-    /* Combustivel: 2 colunas no mobile pequeno */
+    /* Combustivel: 3 colunas no mobile */
     .combustivel-tipos {
         grid-template-columns: repeat(3, 1fr);
         gap: 10px;
     }
 
     .combustivel-btn {
-        padding: 14px 6px;
+        padding: 16px 8px;
+        min-height: 80px;
         font-size: 12px;
-        min-height: 68px;
-        border-radius: 10px;
     }
 
-    .combustivel-btn i {
-        font-size: 20px;
-    }
+    .combustivel-btn i { font-size: 22px; }
 
-    /* Luzes do painel: 4 colunas no mobile */
+    /* Luzes: 4 colunas no mobile */
     .luzes-painel-grid {
         grid-template-columns: repeat(4, 1fr);
         gap: 8px;
@@ -578,49 +561,51 @@
 
     .luz-painel-btn {
         padding: 12px 6px;
-        min-height: 80px;
+        min-height: 82px;
         border-radius: 10px;
     }
 
-    .luz-painel-btn i {
-        font-size: 22px;
-    }
+    .luz-painel-btn i { font-size: 22px; }
+    .luz-painel-btn span { font-size: 11px; }
 
-    .luz-painel-btn span {
-        font-size: 11px;
-    }
-
-    .tabela-pecas-servicos {
-        font-size: 14px;
-    }
+    .tabela-pecas-servicos { font-size: 13px; }
 
     .checklist-actions {
         flex-direction: column;
-        gap: 12px;
+        gap: 10px;
     }
 
     .checklist-actions button {
         width: 100%;
         padding: 16px;
         font-size: 17px;
-        border-radius: 8px;
+        border-radius: 10px;
+        text-align: center;
+        justify-content: center;
     }
 }
 
-/* Telas muito pequenas (< 400px) */
-@media (max-width: 400px) {
+/* Telas muito pequenas < 380px */
+@media (max-width: 380px) {
     .combustivel-tipos {
         grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
     }
+
+    .combustivel-btn {
+        padding: 12px 4px;
+        min-height: 72px;
+        font-size: 11px;
+    }
+
+    .combustivel-btn i { font-size: 20px; }
 
     .luzes-painel-grid {
         grid-template-columns: repeat(4, 1fr);
         gap: 6px;
     }
 
-    .luz-painel-btn {
-        min-height: 72px;
-    }
+    .luz-painel-btn { min-height: 72px; }
 
     .checklist-grid {
         grid-template-columns: 1fr;
