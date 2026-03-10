@@ -152,7 +152,7 @@ function preencherNomeCliente(nome) {
 
     const normalizar = (texto = '') => texto
         .normalize('NFD')
-        .replace(/[̀-ͯ]/g, '')
+        .replace(/[\u0300-\u036f]/g, '')
         .toLowerCase()
         .trim();
 
@@ -955,9 +955,12 @@ async function gerarPDF() {
         interior: document.getElementById('inspecaoInterior')?.value?.trim() || '-'
     };
 
+    // ── INSPEÇÃO DE ENTRADA: coleta label do checkbox ──────────────────────
     const itensEntrada = Array.from(document.querySelectorAll('.checklist-item')).map(item => {
         const checkbox = item.querySelector('input[type="checkbox"]');
-        const label = item.querySelector('label')?.textContent?.trim() || checkbox?.id || 'Item';
+        // tenta pegar o texto do badge/label visível
+        const labelEl = item.querySelector('label') || item.querySelector('.badge') || item.querySelector('span');
+        const label = labelEl?.textContent?.trim() || checkbox?.id || 'Item';
         return { label, marcado: !!checkbox?.checked };
     });
 
@@ -968,7 +971,8 @@ async function gerarPDF() {
 
     const servicos = coletarServicos();
     const pecas = coletarPecas();
-    const fotos = (ChecklistState.checklistAtual?.fotos || []).slice(0, 5);
+    // Aceita até 9 fotos no PDF (3 cima + 6 baixo)
+    const fotos = (ChecklistState.checklistAtual?.fotos || []).slice(0, 9);
 
     const assinaturaCliente = document.getElementById('canvasAssinaturaCliente')?.toDataURL('image/png');
     const assinaturaTecnico = document.getElementById('canvasAssinaturaTecnico')?.toDataURL('image/png');
@@ -1080,6 +1084,7 @@ async function gerarPDF() {
         });
     };
 
+    // ── INSPEÇÃO DE ENTRADA: badges verdes como na tela ───────────────────
     const drawInspectionChecks = (x, y, w, h, items) => {
         doc.setDrawColor(215, 215, 215);
         doc.setFillColor(250, 250, 250);
@@ -1092,23 +1097,48 @@ async function gerarPDF() {
         doc.setDrawColor(235, 235, 235);
         doc.line(x + 1.5, y + 6.5, x + w - 1.5, y + 6.5);
 
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(6.8);
-        doc.setTextColor(70, 70, 70);
+        // Renderiza cada item como badge colorido (verde=marcado, cinza=desmarcado)
+        const badgeH = 4.5;
+        const badgePadX = 2;
+        const gap = 1.5;
+        let curX = x + 2;
+        let curY = y + 10;
+        const maxX = x + w - 2;
+        const maxY = y + h - 2;
 
-        const colX1 = x + 2;
-        const colX2 = x + (w / 2);
-        const rowH = 3.5;
-        let row = 0;
-        for (let i = 0; i < items.length; i += 2) {
-            const yRow = y + 11 + row * rowH;
-            if (yRow > y + h - 2) break;
-            const a = items[i];
-            const b = items[i + 1];
-            doc.text(`${a?.marcado ? '✓' : '☐'} ${a?.label || ''}`, colX1, yRow);
-            if (b) doc.text(`${b.marcado ? '✓' : '☐'} ${b.label}`, colX2, yRow);
-            row += 1;
-        }
+        doc.setFontSize(5.8);
+
+        items.forEach((item) => {
+            const text = item.label;
+            const textWidth = doc.getTextWidth(text);
+            const badgeW = textWidth + badgePadX * 2 + 4; // 4 = espaço do ícone
+
+            if (curX + badgeW > maxX) {
+                curX = x + 2;
+                curY += badgeH + gap;
+            }
+            if (curY + badgeH > maxY) return;
+
+            // Badge fundo
+            if (item.marcado) {
+                doc.setFillColor(25, 135, 84);   // verde Bootstrap
+                doc.setTextColor(255, 255, 255);
+            } else {
+                doc.setFillColor(220, 220, 220);  // cinza claro
+                doc.setTextColor(100, 100, 100);
+            }
+            doc.roundedRect(curX, curY, badgeW, badgeH, 1, 1, 'F');
+
+            // Ícone ✓ ou ✗
+            doc.setFont('helvetica', 'bold');
+            doc.text(item.marcado ? '✓' : '✗', curX + 1.5, curY + 3.3);
+
+            // Texto do item
+            doc.setFont('helvetica', 'normal');
+            doc.text(text, curX + 4.5, curY + 3.3);
+
+            curX += badgeW + gap;
+        });
     };
 
     const compressPhoto = (dataUrl) => new Promise((resolve) => {
@@ -1139,7 +1169,7 @@ async function gerarPDF() {
         doc.text(title, x, y);
 
         const top = y + 3;
-        const tableHeight = 157; // cabe até ~40 linhas compactas
+        const tableHeight = 157;
         doc.setDrawColor(color[0], color[1], color[2]);
         doc.roundedRect(x, top, w, tableHeight, 1.5, 1.5);
 
@@ -1195,7 +1225,7 @@ async function gerarPDF() {
 
     showToast('Gerando PDF com layout ajustado...');
 
-    // PÁGINA 1
+    // ── PÁGINA 1 ────────────────────────────────────────────────────────────
     preparePage();
 
     drawSectionBox(22, 44, 82, 34, 'CLIENTE', [
@@ -1213,7 +1243,8 @@ async function gerarPDF() {
 
     drawSectionBox(22, 81, 166, 16, 'SERVIÇOS SOLICITADOS', servicos.length ? servicos.map(s => s.descricao) : ['-']);
 
-    drawInspectionChecks(22, 100, 166, 20, itensEntrada);
+    // Inspeção de entrada com badges coloridos (altura maior para acomodar badges)
+    drawInspectionChecks(22, 100, 166, 28, itensEntrada);
 
     const obsLinhas = [
         `Lataria: ${inspecaoVisual.lataria}`,
@@ -1222,31 +1253,48 @@ async function gerarPDF() {
         `Interior: ${inspecaoVisual.interior}`,
         observacoes
     ];
-    drawSectionBox(22, 123, 166, 19, 'OBSERVAÇÕES DA INSPEÇÃO', obsLinhas);
+    drawSectionBox(22, 131, 166, 19, 'OBSERVAÇÕES DA INSPEÇÃO', obsLinhas);
 
-    drawSectionBox(22, 145, 166, 43, '📷 FOTOS DO VEÍCULO', []);
-
+    // ── SEÇÃO DE FOTOS: 3 cima + 6 baixo ─────────────────────────────────
     const fotosComprimidas = [];
     for (const foto of fotos) {
         fotosComprimidas.push({ nome: foto.nome, url: await compressPhoto(foto.url) });
     }
 
-    // Apenas miniaturas no box de fotos (sem fotos grandes adicionais)
-    const thumbs = fotosComprimidas.slice(0, 5);
-    thumbs.forEach((foto, i) => {
-        const col = i % 3;
-        const row = Math.floor(i / 3);
-        const x = 26 + col * 40;
-        const y = 154 + row * 18;
-        doc.setDrawColor(200, 40, 40);
-        doc.roundedRect(x, y, 34, 15, 1, 1);
-        doc.addImage(foto.url, 'JPEG', x + 0.6, y + 0.6, 32.8, 13.8, undefined, 'FAST');
-    });
+    const fotoBoxY = 153;
+    const fotoBoxH = 95;
+    drawSectionBox(22, fotoBoxY, 166, fotoBoxH, '📷 FOTOS DO VEÍCULO', []);
+
+    if (fotosComprimidas.length > 0) {
+        // Linha de cima: até 3 fotos grandes lado a lado
+        const topFotos = fotosComprimidas.slice(0, 3);
+        const fotoLarguraCima = 51;   // ~3 colunas em 166mm
+        const fotoAlturaCima  = 38;
+        topFotos.forEach((foto, i) => {
+            const fx = 24 + i * (fotoLarguraCima + 2);
+            const fy = fotoBoxY + 8;
+            doc.setDrawColor(200, 40, 40);
+            doc.roundedRect(fx, fy, fotoLarguraCima, fotoAlturaCima, 1, 1);
+            doc.addImage(foto.url, 'JPEG', fx + 0.5, fy + 0.5, fotoLarguraCima - 1, fotoAlturaCima - 1, undefined, 'FAST');
+        });
+
+        // Linha de baixo: até 6 fotos menores lado a lado
+        const botFotos = fotosComprimidas.slice(3, 9);
+        const fotoLarguraBaixo = 25;  // ~6 colunas em 166mm
+        const fotoAlturaBaixo  = 19;
+        botFotos.forEach((foto, i) => {
+            const fx = 24 + i * (fotoLarguraBaixo + 2.2);
+            const fy = fotoBoxY + 8 + fotoAlturaCima + 3;
+            doc.setDrawColor(200, 40, 40);
+            doc.roundedRect(fx, fy, fotoLarguraBaixo, fotoAlturaBaixo, 1, 1);
+            doc.addImage(foto.url, 'JPEG', fx + 0.5, fy + 0.5, fotoLarguraBaixo - 1, fotoAlturaBaixo - 1, undefined, 'FAST');
+        });
+    }
 
     drawSignatures();
     drawFooter();
 
-    // PÁGINA 2 - PEÇAS E SERVIÇOS (única folha compacta)
+    // ── PÁGINA 2 - PEÇAS E SERVIÇOS ────────────────────────────────────────
     doc.addPage();
     preparePage();
 
