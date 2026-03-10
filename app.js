@@ -227,7 +227,11 @@ function initApp() {
     renderVeiculos();
     renderOrdensServico();
     if (typeof initFinanceiro === 'function') {
-        initFinanceiro();
+        try {
+            initFinanceiro();
+        } catch (error) {
+            console.error('Falha ao inicializar modulo financeiro:', error);
+        }
     }
     
     // ATIVAR CARDS CLICAVEIS DO DASHBOARD
@@ -425,7 +429,14 @@ function loadFromLocalStorage() {
                 AppState.data.contasPagar = AppState.data.contasPagar || AppState.data.financeiro.contasPagar || [];
                 delete AppState.data.financeiro;
             }
-            AppState.data.contasFixas = AppState.data.contasFixas || [];
+
+            AppState.data.contasReceber = AppState.data.contasReceber || AppState.data.contas_a_receber || [];
+            AppState.data.contasPagar = AppState.data.contasPagar || AppState.data.contas_a_pagar || [];
+            AppState.data.contasFixas = AppState.data.contasFixas || AppState.data.contas_fixas || [];
+
+            delete AppState.data.contas_a_receber;
+            delete AppState.data.contas_a_pagar;
+            delete AppState.data.contas_fixas;
             console.log('Dados carregados do LocalStorage');
         }
     } catch (e) {

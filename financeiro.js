@@ -44,10 +44,10 @@ function normalizeFinanceiroData() {
         const status = c.status || getStatusReceberByParcelas(parcelasRecebidas, parcelasTotal, c.vencimento);
         return {
             origem: c.origem || 'manual',
-            pagadorTipo: c.pagadorTipo || 'cliente',
-            pagadorNome: c.pagadorNome || c.cliente || 'Cliente',
-            formaPagamento: c.formaPagamento || 'a_definir',
-            osNumero: c.osNumero || c.osId || '-',
+            pagadorTipo: c.pagadorTipo || c.tipoPagador || 'cliente',
+            pagadorNome: c.pagadorNome || c.nomePagador || c.cliente || 'Cliente',
+            formaPagamento: c.formaPagamento || c.forma_pagamento || 'a_definir',
+            osNumero: c.osNumero || c.os_id || c.osId || '-',
             ...c,
             parcelasTotal,
             parcelasRecebidas,
@@ -124,7 +124,7 @@ function syncContasReceberFromOS() {
         const parcelasTotal = Math.max(1, Number(os.parcelasReceber || 1));
         const parcelasRecebidas = Math.min(parcelasTotal, Math.max(0, Number(os.parcelasRecebidas || 0)));
         const valorRecebido = Number((os.valorRecebido != null ? os.valorRecebido : (valorTotal / parcelasTotal) * parcelasRecebidas) || 0);
-        const status = getStatusReceberByParcelas(parcelasRecebidas, parcelasTotal, os.data);
+        const status = getStatusReceberByParcelas(parcelasRecebidas, parcelasTotal, os.vencimentoRecebimento || os.data);
 
         const existente = AppState.data.contasReceber.find(c => c.origem === 'os' && String(c.osId) === String(os.id));
         const contaOS = {

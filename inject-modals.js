@@ -132,7 +132,7 @@
       <form id="contaPagarForm">
         <div class="form-row"><div class="form-group"><label for="contaPagarFornecedor">Fornecedor *</label><input type="text" id="contaPagarFornecedor" required></div></div>
         <div class="form-row">
-          <div class="form-group"><label for="contaPagarValor">Valor (R$) *</label><input type="text" id="contaPagarValor" placeholder="R$ 0,00" required></div>
+          <div class="form-group"><label for="contaPagarValor">Valor (R$) *</label><input type="text" id="contaPagarValor" placeholder="R$ 0,00" inputmode="decimal" autocomplete="off" required></div>
           <div class="form-group"><label for="contaPagarCategoria">Categoria *</label><input type="text" id="contaPagarCategoria" required></div>
         </div>
         <div class="form-row"><div class="form-group"><label for="contaPagarVencimento">Vencimento *</label><input type="date" id="contaPagarVencimento" required></div></div>
@@ -158,7 +158,7 @@
       <form id="contaReceberForm">
         <div class="form-row"><div class="form-group"><label for="contaReceberOS">OS *</label><select id="contaReceberOS" required></select></div></div>
         <div class="form-row">
-          <div class="form-group"><label for="contaReceberValor">Valor (R$) *</label><input type="text" id="contaReceberValor" placeholder="R$ 0,00" required></div>
+          <div class="form-group"><label for="contaReceberValor">Valor (R$) *</label><input type="text" id="contaReceberValor" placeholder="R$ 0,00" inputmode="decimal" autocomplete="off" required></div>
           <div class="form-group"><label for="contaReceberVencimento">Vencimento *</label><input type="date" id="contaReceberVencimento" required></div>
         </div>
         <div class="form-row">
@@ -194,7 +194,7 @@
       <form id="contaFixaForm">
         <div class="form-row"><div class="form-group"><label for="contaFixaDescricao">Descricao *</label><input type="text" id="contaFixaDescricao" required></div></div>
         <div class="form-row">
-          <div class="form-group"><label for="contaFixaValor">Valor Mensal (R$) *</label><input type="text" id="contaFixaValor" placeholder="R$ 0,00" required></div>
+          <div class="form-group"><label for="contaFixaValor">Valor Mensal (R$) *</label><input type="text" id="contaFixaValor" placeholder="R$ 0,00" inputmode="decimal" autocomplete="off" required></div>
           <div class="form-group"><label for="contaFixaDia">Dia do Vencimento *</label><input type="number" id="contaFixaDia" min="1" max="31" required></div>
         </div>
         <div class="form-row"><div class="form-group"><label for="contaFixaCategoria">Categoria *</label><select id="contaFixaCategoria" required><option value="">Selecione</option><option value="pessoal">Pessoal</option><option value="estrutura">Estrutura</option><option value="operacional">Operacional</option><option value="tributos">Tributos</option><option value="servicos">Servicos</option></select></div></div>
