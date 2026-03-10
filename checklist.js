@@ -818,26 +818,25 @@ async function gerarPDF() {
 
     // ── PAGINA 1 ────────────────────────────────────────────────────────────
     drawBasePage(); drawHeader();
-    drawSectionBox(22, 44, 82, 34, 'CLIENTE', [
+    // CLIENTE E VEICULO em tamanho REDUZIDO e PROPORCIONAL
+    drawSectionBox(22, 44, 82, 24, 'CLIENTE', [
         'NOME: ' + cliente, 'CPF/CNPJ: ' + cpf, 'TEL: ' + (telefoneCliente || 'Nao informado')
     ]);
-    drawSectionBox(107, 44, 81, 34, 'VEICULO', [
+    drawSectionBox(107, 44, 81, 24, 'VEICULO', [
         'VEICULO: ' + modelo + '  ' + placa, 'CHASSI: ' + chassis,
-        'KM: ' + hodometro + ' | COMB: ' + (combustivelTipos.join('/') || 'SELECIONE...') + ' (' + combustivelNivel + '%)',
-        'DATA: ' + dataEmissao + ' AS ' + horaEmissao.slice(0, 5)
+        'KM: ' + hodometro + ' | COMBUSTIVEL: ' + (combustivelTipos.join('/') || 'SELECIONE...') + ' (' + combustivelNivel + '%)'
     ]);
-    drawSectionBox(22, 81, 166, 16, 'SERVICOS SOLICITADOS', servicos.length ? servicos.map(s => s.descricao) : ['-']);
-    drawInspectionChecks(22, 100, 166, 28, itensEntrada);
-    drawSectionBox(22, 131, 166, 19, 'OBSERVACOES DA INSPECAO', [
+    drawSectionBox(22, 71, 166, 13, 'SERVICOS SOLICITADOS', servicos.length ? servicos.map(s => s.descricao) : ['-']);
+    drawInspectionChecks(22, 87, 166, 30, itensEntrada);
+    drawSectionBox(22, 120, 166, 16, 'OBSERVACOES DA INSPECAO', [
         'Lataria: ' + inspecaoVisual.lataria,
         'Pneus: ' + inspecaoVisual.pneus,
         'Vidros: ' + inspecaoVisual.vidros,
-        'Interior: ' + inspecaoVisual.interior,
-        observacoes
+        'Interior: ' + inspecaoVisual.interior
     ]);
     const fotosComprimidas = [];
     for (const foto of fotos) fotosComprimidas.push({ nome: foto.nome, url: await compressPhoto(foto.url) });
-    const fotoBoxY = 153, fotoBoxH = 88;
+    const fotoBoxY = 139, fotoBoxH = 102;
     drawSectionBox(22, fotoBoxY, 166, fotoBoxH, 'FOTOS DO VEICULO', []);
     if (fotosComprimidas.length > 0) {
         const fotoLarguraCima = 51, fotoAlturaCima = 36;
@@ -858,6 +857,7 @@ async function gerarPDF() {
     // ── PAGINA 2 ─────────────────────────────────────────────────────────────
     doc.addPage();
     drawBasePage(); drawHeader();
+    // PECAS E SERVICOS com COLUNAS PADRONIZADAS
     const cardPecas = drawCompactTableCard(22, 47, 82, 'PECAS', [20, 105, 200], pecas, 'TOTAL PECAS');
     const cardServicos = drawCompactTableCard(107, 47, 81, 'SERVICOS', [220, 40, 40], servicos, 'TOTAL SERVICOS');
     const totalGeral = cardPecas.total + cardServicos.total;
@@ -867,8 +867,38 @@ async function gerarPDF() {
     doc.text('TOTAL GERAL:', 104, 230, { align: 'center' });
     doc.setTextColor(28, 170, 90);
     doc.text(formatCurrency(totalGeral), 182, 230, { align: 'right' });
-    drawRegulacaoBox(22, 237, 166, 27);
-    drawSignatures(); drawFooter();
+    // CAIXA AMARELA DE REGULACAO - MELHORADA E MAIS PROFISSIONAL
+    const drawRegulacaoBoxMelhorada = (x, y, w, h) => {
+        const corBG = [255, 235, 147]; // Amarelo suave
+        doc.setFillColor(corBG[0], corBG[1], corBG[2]);
+        doc.setDrawColor(200, 180, 0);
+        doc.roundedRect(x, y, w, h, 1.5, 1.5, 'FD');
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(100, 80, 0); doc.setFontSize(7.5);
+        doc.text('ASSINATURA DA REGULACAO / RESPONSAVEL', x + 2, y + 4.5);
+        doc.setDrawColor(200, 180, 0); doc.setLineWidth(0.3);
+        doc.line(x + 1.5, y + 5.8, x + w - 1.5, y + 5.8);
+        // COLUNA 1: INFO REGULACAO
+        const col1W = w * 0.5;
+        doc.setFont('helvetica', 'normal'); doc.setTextColor(80, 80, 80); doc.setFontSize(6.3);
+        doc.text('SEGURADORA:', x + 2, y + 9);
+        doc.text(seguradora || 'Nao informada', x + 2, y + 12);
+        doc.text('REGULADOR:', x + 2, y + 15.5);
+        doc.text(regulador || 'Nao informado', x + 2, y + 18.5);
+        // COLUNA 2: DATA E STATUS
+        const col2X = x + col1W + 2;
+        doc.text('DATA:', col2X, y + 9);
+        const dataFormatada = dataRegulacao ? new Date(dataRegulacao + 'T12:00:00').toLocaleDateString('pt-BR') : '-';
+        doc.text(dataFormatada, col2X, y + 12);
+        doc.text('STATUS:', col2X, y + 15.5);
+        doc.text((statusRegulacao || 'pendente').toUpperCase(), col2X, y + 18.5);
+        // ASSINATURA
+        doc.setDrawColor(160, 160, 160);
+        doc.line(x + 2, y + 22, col2X - 2, y + 22);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(5.5); doc.setTextColor(120, 120, 120);
+        doc.text('Assinatura', x + col1W / 2, y + 24, { align: 'center' });
+    };
+    drawRegulacaoBoxMelhorada(22, 237, 166, 27);
+    drawFooter();
 
     // ── BAIXAR PDF AUTOMATICAMENTE (sem popup) ───────────────────────────────
     doc.save(nomeArquivo);
