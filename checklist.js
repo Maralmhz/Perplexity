@@ -2,66 +2,22 @@
 const ChecklistState = {
     checklistAtual: null,
     pecasComuns: [
-        'Parachoque dianteiro',
-        'Parachoque traseiro',
-        'Farol',
-        'Lanterna',
-        'Retrovisor',
-        'Para-lama',
-        'Capo',
-        'Porta',
-        'Vidro',
-        'Macaneta',
-        'Spoiler',
-        'Grade frontal',
-        'Para-choque',
-        'Amortecedor',
-        'Pastilha de freio',
-        'Disco de freio',
-        'Bateria',
-        'Filtro de oleo',
-        'Filtro de ar',
-        'Correia dentada',
-        'Vela de ignicao',
-        'Oleo motor',
-        'Pneu',
-        'Alinhamento',
-        'Balanceamento',
-        'Suspensao',
-        'Cambio',
-        'Embreagem',
-        'Radiador',
-        'Bomba dagua',
-        'Alternador',
-        'Motor de partida'
+        'Parachoque dianteiro','Parachoque traseiro','Farol','Lanterna','Retrovisor',
+        'Para-lama','Capo','Porta','Vidro','Macaneta','Spoiler','Grade frontal',
+        'Para-choque','Amortecedor','Pastilha de freio','Disco de freio','Bateria',
+        'Filtro de oleo','Filtro de ar','Correia dentada','Vela de ignicao','Oleo motor',
+        'Pneu','Alinhamento','Balanceamento','Suspensao','Cambio','Embreagem',
+        'Radiador','Bomba dagua','Alternador','Motor de partida'
     ],
     servicosComuns: [
-        'Mao de obra',
-        'Pintura',
-        'Funilaria',
-        'Mecanica geral',
-        'Troca de oleo',
-        'Revisao',
-        'Alinhamento',
-        'Balanceamento',
-        'Diagnostico',
-        'Instalacao',
-        'Remocao',
-        'Polimento',
-        'Lavagem',
-        'Higienizacao',
-        'Eletrica',
-        'Suspensao',
-        'Freios',
-        'Cambio',
-        'Embreagem',
-        'Ar condicionado'
+        'Mao de obra','Pintura','Funilaria','Mecanica geral','Troca de oleo','Revisao',
+        'Alinhamento','Balanceamento','Diagnostico','Instalacao','Remocao','Polimento',
+        'Lavagem','Higienizacao','Eletrica','Suspensao','Freios','Cambio','Embreagem','Ar condicionado'
     ]
 };
 
 function initChecklist(osId = null, veiculoId = null, clienteId = null) {
     console.log('Inicializando checklist...', { osId, veiculoId, clienteId });
-    
     if (osId) {
         const checklistExistente = AppState.data.checklists?.find(c => c.osId === osId);
         if (checklistExistente) {
@@ -73,7 +29,6 @@ function initChecklist(osId = null, veiculoId = null, clienteId = null) {
     } else {
         criarNovoChecklist(null, veiculoId, clienteId);
     }
-    
     setupAutoComplete();
     setupNavigacaoTeclado();
     setupUploadFotos();
@@ -82,26 +37,18 @@ function initChecklist(osId = null, veiculoId = null, clienteId = null) {
     popularSelectsChecklist();
 }
 
-function popularSelectsChecklist() {
-    // Layout atual usa campos de texto (nao selects)
-}
-
-function atualizarVeiculosChecklist(clienteId) {
-    // Mantido por compatibilidade com chamadas legadas
-}
+function popularSelectsChecklist() {}
+function atualizarVeiculosChecklist(clienteId) {}
 
 function gerarNumeroOS() {
     const placaInput = document.getElementById('checklistVeiculoPlaca');
     if (!placaInput) return;
-
     const placa = placaInput.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
     if (placa.length < 3) return;
-
     const hoje = new Date();
     const dia = String(hoje.getDate()).padStart(2, '0');
     const mes = String(hoje.getMonth() + 1).padStart(2, '0');
     const ano = String(hoje.getFullYear()).slice(-2);
-
     const numeroOS = `${placa}-${dia}${mes}${ano}`;
     const numeroOSEl = document.getElementById('checklistNumeroOS');
     if (numeroOSEl) numeroOSEl.textContent = numeroOS;
@@ -109,21 +56,17 @@ function gerarNumeroOS() {
 
 function preencherFormularioChecklist() {
     if (!ChecklistState.checklistAtual) return;
-
     const checklist = ChecklistState.checklistAtual;
     const cliente = (AppState.data.clientes || []).find(c => c.id == checklist.clienteId);
     const veiculo = (AppState.data.veiculos || []).find(v => v.id == checklist.veiculoId);
-
     const clienteNome = document.getElementById('checklistClienteNome');
     const clienteCPF = document.getElementById('checklistClienteCPF');
     const veiculoPlaca = document.getElementById('checklistVeiculoPlaca');
     const veiculoModelo = document.getElementById('checklistVeiculoModelo');
-
     if (clienteNome) clienteNome.value = cliente?.nome || checklist.clienteNome || '';
     if (clienteCPF) clienteCPF.value = cliente?.cpf || checklist.clienteCPF || '';
     if (veiculoPlaca) veiculoPlaca.value = veiculo?.placa || checklist.veiculoPlaca || '';
     if (veiculoModelo) veiculoModelo.value = veiculo?.modelo || checklist.veiculoModelo || '';
-
     const hodometro = document.getElementById('hodometro');
     const observacoes = document.getElementById('observacoes');
     const nivelCombustivel = document.getElementById('nivelCombustivel');
@@ -132,13 +75,11 @@ function preencherFormularioChecklist() {
     if (nivelCombustivel && typeof checklist.nivelCombustivel === 'number') {
         nivelCombustivel.value = checklist.nivelCombustivel;
     }
-
     if (checklist.numeroOS && document.getElementById('checklistNumeroOS')) {
         document.getElementById('checklistNumeroOS').textContent = checklist.numeroOS;
     } else {
         gerarNumeroOS();
     }
-
     if (checklist.itens) {
         Object.entries(checklist.itens).forEach(([id, checked]) => {
             const el = document.getElementById(id);
@@ -149,25 +90,16 @@ function preencherFormularioChecklist() {
 
 function preencherNomeCliente(nome) {
     if (!nome) return;
-
-    const normalizar = (texto = '') => texto
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .trim();
-
+    const normalizar = (texto = '') => texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
     const nomeBusca = normalizar(nome);
     const cliente = (AppState.data.clientes || []).find(c => normalizar(c.nome) === nomeBusca);
     if (!cliente) return;
-
     const cpfInput = document.getElementById('checklistClienteCPF');
     if (cpfInput && !cpfInput.value) cpfInput.value = cliente.cpf || '';
-
     const veiculo = (AppState.data.veiculos || []).find(v => v.clienteId === cliente.id);
     if (veiculo) {
         const placaInput = document.getElementById('checklistVeiculoPlaca');
         const modeloInput = document.getElementById('checklistVeiculoModelo');
-
         if (placaInput && !placaInput.value) placaInput.value = veiculo.placa || '';
         if (modeloInput && !modeloInput.value) modeloInput.value = veiculo.modelo || '';
         gerarNumeroOS();
@@ -176,61 +108,26 @@ function preencherNomeCliente(nome) {
 
 function criarNovoChecklist(osId = null, veiculoId = null, clienteId = null) {
     ChecklistState.checklistAtual = {
-        id: Date.now(),
-        osId: osId,
-        veiculoId: veiculoId,
-        clienteId: clienteId,
+        id: Date.now(), osId, veiculoId, clienteId,
         dataEntrada: new Date().toISOString(),
-        hodometro: '',
-        nivelCombustivel: 4,
-        tipoCombustivel: [],
+        hodometro: '', nivelCombustivel: 4, tipoCombustivel: [],
         itens: {
-            estepe: false,
-            macaco: false,
-            chaveRoda: false,
-            triangulo: false,
-            extintor: false,
-            radio: false,
-            antena: false,
-            acendedor: false,
-            vidroEletrico: false,
-            travaEletrica: false,
-            buzina: false,
-            bateria: false,
-            rodasLiga: false,
-            protetorCarter: false,
-            chaveSegredo: false,
-            tapetes: false,
-            ar: false,
-            abs: false,
-            airbag: false,
-            automatico: false,
-            direcaoHidraulica: false,
-            alarme: false
+            estepe: false, macaco: false, chaveRoda: false, triangulo: false,
+            extintor: false, radio: false, antena: false, acendedor: false,
+            vidroEletrico: false, travaEletrica: false, buzina: false, bateria: false,
+            rodasLiga: false, protetorCarter: false, chaveSegredo: false, tapetes: false,
+            ar: false, abs: false, airbag: false, automatico: false,
+            direcaoHidraulica: false, alarme: false
         },
         luzesAvarias: [],
-        inspecaoVisual: {
-            lataria: '',
-            pneus: '',
-            vidros: '',
-            interior: ''
-        },
-        observacoes: '',
-        fotos: [],
-        assinaturaCliente: null,
-        assinaturaTecnico: null,
-        status: 'rascunho'
+        inspecaoVisual: { lataria: '', pneus: '', vidros: '', interior: '' },
+        observacoes: '', fotos: [],
+        assinaturaCliente: null, assinaturaTecnico: null, status: 'rascunho'
     };
-    
     ChecklistState.servicosEPecas = {
-        servicos: [],
-        pecas: [],
-        statusRegulacao: 'pendente',
-        seguradora: '',
-        regulador: '',
-        dataRegulacao: null,
-        documentoRegulacao: null,
-        fotoVistoria: null
+        servicos: [], pecas: [], statusRegulacao: 'pendente',
+        seguradora: '', regulador: '', dataRegulacao: null,
+        documentoRegulacao: null, fotoVistoria: null
     };
 }
 
@@ -242,14 +139,9 @@ function setupAutoComplete() {
 function setupAutoCompleteGenerico(seletor, lista) {
     document.addEventListener('input', (e) => {
         if (!e.target.matches(seletor)) return;
-        
         const valor = removerAcentos(e.target.value.toLowerCase());
         if (valor.length < 2) return;
-        
-        const sugestoes = lista.filter(item => 
-            removerAcentos(item.toLowerCase()).includes(valor)
-        );
-        
+        const sugestoes = lista.filter(item => removerAcentos(item.toLowerCase()).includes(valor));
         mostrarSugestoes(e.target, sugestoes);
     });
 }
@@ -260,52 +152,22 @@ function removerAcentos(texto) {
 
 function mostrarSugestoes(input, sugestoes) {
     const suggestoesExistentes = input.parentElement.querySelector('.autocomplete-sugestoes');
-    if (suggestoesExistentes) {
-        suggestoesExistentes.remove();
-    }
-    
+    if (suggestoesExistentes) suggestoesExistentes.remove();
     if (sugestoes.length === 0) return;
-    
     const divSugestoes = document.createElement('div');
     divSugestoes.className = 'autocomplete-sugestoes';
-    divSugestoes.style.cssText = `
-        position: absolute;
-        background: white;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        max-height: 200px;
-        overflow-y: auto;
-        z-index: 1000;
-        width: ${input.offsetWidth}px;
-        margin-top: 2px;
-    `;
-    
+    divSugestoes.style.cssText = `position:absolute;background:white;border:1px solid #ddd;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,0.1);max-height:200px;overflow-y:auto;z-index:1000;width:${input.offsetWidth}px;margin-top:2px;`;
     sugestoes.slice(0, 5).forEach(sugestao => {
         const div = document.createElement('div');
         div.textContent = sugestao;
-        div.style.cssText = `
-            padding: 8px 12px;
-            cursor: pointer;
-            border-bottom: 1px solid #f0f0f0;
-        `;
-        div.addEventListener('mouseenter', () => {
-            div.style.background = '#f5f5f5';
-        });
-        div.addEventListener('mouseleave', () => {
-            div.style.background = 'white';
-        });
-        div.addEventListener('click', () => {
-            input.value = sugestao;
-            divSugestoes.remove();
-            input.focus();
-        });
+        div.style.cssText = 'padding:8px 12px;cursor:pointer;border-bottom:1px solid #f0f0f0;';
+        div.addEventListener('mouseenter', () => { div.style.background = '#f5f5f5'; });
+        div.addEventListener('mouseleave', () => { div.style.background = 'white'; });
+        div.addEventListener('click', () => { input.value = sugestao; divSugestoes.remove(); input.focus(); });
         divSugestoes.appendChild(div);
     });
-    
     input.parentElement.style.position = 'relative';
     input.parentElement.appendChild(divSugestoes);
-    
     setTimeout(() => {
         document.addEventListener('click', function removerSugestoes(e) {
             if (!divSugestoes.contains(e.target) && e.target !== input) {
@@ -319,16 +181,11 @@ function mostrarSugestoes(input, sugestoes) {
 function setupNavigacaoTeclado() {
     document.addEventListener('keydown', (e) => {
         const target = e.target;
-        
-        if ((e.key === 'Tab' || e.key === 'Enter') && 
-            (target.classList.contains('input-peca-desc') || 
-             target.classList.contains('input-peca-valor') ||
-             target.classList.contains('input-servico-desc') ||
-             target.classList.contains('input-servico-valor'))) {
-            
+        if ((e.key === 'Tab' || e.key === 'Enter') &&
+            (target.classList.contains('input-peca-desc') || target.classList.contains('input-peca-valor') ||
+             target.classList.contains('input-servico-desc') || target.classList.contains('input-servico-valor'))) {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                
                 if (target.classList.contains('input-peca-valor')) {
                     adicionarLinhaPeca();
                 } else if (target.classList.contains('input-servico-valor')) {
@@ -365,87 +222,37 @@ function adicionarLinhaPeca() {
 function criarLinhaServico(servico = null) {
     const tr = document.createElement('tr');
     const id = servico?.id || Date.now();
-    
     tr.innerHTML = `
-        <td>
-            <input type="text" class="input-servico-desc" 
-                   placeholder="Descricao do servico" 
-                   value="${servico?.descricao || ''}" 
-                   data-id="${id}">
-        </td>
-        <td>
-            <input type="text" class="input-servico-valor" 
-                   placeholder="0,00" 
-                   value="${servico?.valor || ''}" 
-                   data-id="${id}"
-                   oninput="formatarValorInput(this); atualizarResumoFinanceiro();">
-        </td>
-        <td style="text-align: center;">
-            <input type="checkbox" ${servico?.regulado ? 'checked' : ''} 
-                   onchange="atualizarResumoFinanceiro()">
-        </td>
-        <td style="text-align: center;">
-            <button class="btn-icon btn-danger" onclick="removerLinhaServico(this)" title="Remover">
-                <i class="fas fa-trash"></i>
-            </button>
-        </td>
+        <td><input type="text" class="input-servico-desc" placeholder="Descricao do servico" value="${servico?.descricao || ''}" data-id="${id}"></td>
+        <td><input type="text" class="input-servico-valor" placeholder="0,00" value="${servico?.valor || ''}" data-id="${id}" oninput="formatarValorInput(this); atualizarResumoFinanceiro();"></td>
+        <td style="text-align:center;"><input type="checkbox" ${servico?.regulado ? 'checked' : ''} onchange="atualizarResumoFinanceiro()"></td>
+        <td style="text-align:center;"><button class="btn-icon btn-danger" onclick="removerLinhaServico(this)" title="Remover"><i class="fas fa-trash"></i></button></td>
     `;
-    
     return tr;
 }
 
 function criarLinhaPeca(peca = null) {
     const tr = document.createElement('tr');
     const id = peca?.id || Date.now();
-    
     tr.innerHTML = `
-        <td>
-            <input type="text" class="input-peca-desc" 
-                   placeholder="Descricao da peca" 
-                   value="${peca?.descricao || ''}" 
-                   data-id="${id}">
-        </td>
-        <td>
-            <input type="text" class="input-peca-valor" 
-                   placeholder="0,00" 
-                   value="${peca?.valor || ''}" 
-                   data-id="${id}"
-                   oninput="formatarValorInput(this); atualizarResumoFinanceiro();">
-        </td>
-        <td style="text-align: center;">
-            <input type="checkbox" ${peca?.regulado ? 'checked' : ''} 
-                   onchange="atualizarResumoFinanceiro()">
-        </td>
-        <td style="text-align: center;">
-            <button class="btn-icon btn-danger" onclick="removerLinhaPeca(this)" title="Remover">
-                <i class="fas fa-trash"></i>
-            </button>
-        </td>
+        <td><input type="text" class="input-peca-desc" placeholder="Descricao da peca" value="${peca?.descricao || ''}" data-id="${id}"></td>
+        <td><input type="text" class="input-peca-valor" placeholder="0,00" value="${peca?.valor || ''}" data-id="${id}" oninput="formatarValorInput(this); atualizarResumoFinanceiro();"></td>
+        <td style="text-align:center;"><input type="checkbox" ${peca?.regulado ? 'checked' : ''} onchange="atualizarResumoFinanceiro()"></td>
+        <td style="text-align:center;"><button class="btn-icon btn-danger" onclick="removerLinhaPeca(this)" title="Remover"><i class="fas fa-trash"></i></button></td>
     `;
-    
     return tr;
 }
 
 function removerLinhaServico(btn) {
-    if (confirm('Remover este servico?')) {
-        btn.closest('tr').remove();
-        atualizarResumoFinanceiro();
-    }
+    if (confirm('Remover este servico?')) { btn.closest('tr').remove(); atualizarResumoFinanceiro(); }
 }
-
 function removerLinhaPeca(btn) {
-    if (confirm('Remover esta peca?')) {
-        btn.closest('tr').remove();
-        atualizarResumoFinanceiro();
-    }
+    if (confirm('Remover esta peca?')) { btn.closest('tr').remove(); atualizarResumoFinanceiro(); }
 }
 
 function formatarValorInput(input) {
     let valor = input.value.replace(/\D/g, '');
-    if (valor === '') {
-        input.value = '';
-        return;
-    }
+    if (valor === '') { input.value = ''; return; }
     valor = (parseInt(valor) / 100).toFixed(2);
     input.value = valor;
 }
@@ -453,23 +260,18 @@ function formatarValorInput(input) {
 function atualizarResumoFinanceiro() {
     const servicos = coletarServicos();
     const pecas = coletarPecas();
-    
     const totalServicos = servicos.reduce((sum, s) => sum + (parseFloat(s.valor) || 0), 0);
     const totalPecas = pecas.reduce((sum, p) => sum + (parseFloat(p.valor) || 0), 0);
-    
     const servicosRegulados = servicos.filter(s => s.regulado).reduce((sum, s) => sum + (parseFloat(s.valor) || 0), 0);
     const pecasReguladas = pecas.filter(p => p.regulado).reduce((sum, p) => sum + (parseFloat(p.valor) || 0), 0);
-    
     const totalRegulado = servicosRegulados + pecasReguladas;
     const totalPendente = (totalServicos + totalPecas) - totalRegulado;
     const totalGeral = totalServicos + totalPecas;
-    
     const elTotalServicos = document.getElementById('totalServicos');
     const elTotalPecas = document.getElementById('totalPecas');
     const elTotalRegulado = document.getElementById('totalRegulado');
     const elTotalPendente = document.getElementById('totalPendente');
     const elTotalGeral = document.getElementById('totalGeral');
-    
     if (elTotalServicos) elTotalServicos.textContent = formatMoney(totalServicos);
     if (elTotalPecas) elTotalPecas.textContent = formatMoney(totalPecas);
     if (elTotalRegulado) elTotalRegulado.textContent = formatMoney(totalRegulado);
@@ -480,55 +282,33 @@ function atualizarResumoFinanceiro() {
 function coletarServicos() {
     const linhas = document.querySelectorAll('#tabelaServicos tr');
     const servicos = [];
-    
     linhas.forEach(linha => {
         const desc = linha.querySelector('.input-servico-desc')?.value;
         const valor = linha.querySelector('.input-servico-valor')?.value;
         const regulado = linha.querySelector('input[type="checkbox"]')?.checked;
-        
-        if (desc && valor) {
-            servicos.push({
-                descricao: desc,
-                valor: parseFloat(valor) || 0,
-                regulado: regulado || false
-            });
-        }
+        if (desc && valor) servicos.push({ descricao: desc, valor: parseFloat(valor) || 0, regulado: regulado || false });
     });
-    
     return servicos;
 }
 
 function coletarPecas() {
     const linhas = document.querySelectorAll('#tabelaPecas tr');
     const pecas = [];
-    
     linhas.forEach(linha => {
         const desc = linha.querySelector('.input-peca-desc')?.value;
         const valor = linha.querySelector('.input-peca-valor')?.value;
         const regulado = linha.querySelector('input[type="checkbox"]')?.checked;
-        
-        if (desc && valor) {
-            pecas.push({
-                descricao: desc,
-                valor: parseFloat(valor) || 0,
-                regulado: regulado || false
-            });
-        }
+        if (desc && valor) pecas.push({ descricao: desc, valor: parseFloat(valor) || 0, regulado: regulado || false });
     });
-    
     return pecas;
 }
 
 function setupUploadFotos() {
     const inputFotos = document.getElementById('inputFotos');
     if (!inputFotos) return;
-    
     inputFotos.addEventListener('change', (e) => {
-        const files = Array.from(e.target.files);
-        files.forEach(file => {
-            if (file.type.startsWith('image/')) {
-                comprimirEAdicionarFoto(file);
-            }
+        Array.from(e.target.files).forEach(file => {
+            if (file.type.startsWith('image/')) comprimirEAdicionarFoto(file);
         });
     });
 }
@@ -539,30 +319,13 @@ function comprimirEAdicionarFoto(file) {
         const img = new Image();
         img.onload = () => {
             const canvas = document.createElement('canvas');
-            const maxWidth = 800;
-            const maxHeight = 600;
-            let width = img.width;
-            let height = img.height;
-            
-            if (width > height) {
-                if (width > maxWidth) {
-                    height *= maxWidth / width;
-                    width = maxWidth;
-                }
-            } else {
-                if (height > maxHeight) {
-                    width *= maxHeight / height;
-                    height = maxHeight;
-                }
-            }
-            
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-            
-            const fotoComprimida = canvas.toDataURL('image/jpeg', 0.7);
-            adicionarFotoNaGaleria(fotoComprimida, file.name);
+            const maxWidth = 800, maxHeight = 600;
+            let width = img.width, height = img.height;
+            if (width > height) { if (width > maxWidth) { height *= maxWidth / width; width = maxWidth; } }
+            else { if (height > maxHeight) { width *= maxHeight / height; height = maxHeight; } }
+            canvas.width = width; canvas.height = height;
+            canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+            adicionarFotoNaGaleria(canvas.toDataURL('image/jpeg', 0.7), file.name);
         };
         img.src = e.target.result;
     };
@@ -573,26 +336,14 @@ function adicionarFotoNaGaleria(dataUrl, nome) {
     const galeria = document.getElementById('galeriaFotos');
     const div = document.createElement('div');
     div.className = 'foto-preview';
-    div.style.cssText = 'position: relative; display: inline-block; margin: 5px;';
-    
-    div.innerHTML = `
-        <img src="${dataUrl}" style="width: 120px; height: 90px; object-fit: cover; border-radius: 4px;">
-        <button onclick="removerFoto(this)" style="position: absolute; top: 2px; right: 2px; background: red; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer;">
-            x
-        </button>
-    `;
-    
+    div.style.cssText = 'position:relative;display:inline-block;margin:5px;';
+    div.innerHTML = `<img src="${dataUrl}" style="width:120px;height:90px;object-fit:cover;border-radius:4px;"><button onclick="removerFoto(this)" style="position:absolute;top:2px;right:2px;background:red;color:white;border:none;border-radius:50%;width:24px;height:24px;cursor:pointer;">x</button>`;
     galeria.appendChild(div);
-    
-    if (!ChecklistState.checklistAtual.fotos) {
-        ChecklistState.checklistAtual.fotos = [];
-    }
+    if (!ChecklistState.checklistAtual.fotos) ChecklistState.checklistAtual.fotos = [];
     ChecklistState.checklistAtual.fotos.push({ url: dataUrl, nome: nome });
 }
 
-function removerFoto(btn) {
-    btn.parentElement.remove();
-}
+function removerFoto(btn) { btn.parentElement.remove(); }
 
 function setupAssinaturaCanvas() {
     setupCanvas('canvasAssinaturaCliente');
@@ -602,102 +353,52 @@ function setupAssinaturaCanvas() {
 function setupCanvas(canvasId) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
-    
     const ctx = canvas.getContext('2d');
     let desenhando = false;
-    
     canvas.addEventListener('mousedown', () => desenhando = true);
     canvas.addEventListener('mouseup', () => desenhando = false);
     canvas.addEventListener('mouseleave', () => desenhando = false);
-    
     canvas.addEventListener('mousemove', (e) => {
         if (!desenhando) return;
         const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
-        ctx.strokeStyle = '#000';
-        
-        ctx.lineTo(x, y);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(x, y);
+        ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = '#000';
+        ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+        ctx.stroke(); ctx.beginPath();
+        ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
     });
-    
     canvas.addEventListener('mousedown', (e) => {
         const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        ctx.beginPath();
-        ctx.moveTo(x, y);
+        ctx.beginPath(); ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
     });
 }
 
 function limparAssinatura(canvasId) {
     const canvas = document.getElementById(canvasId);
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
 }
 
-function toggleLuzPainel(luz) {
-    const btn = event.target.closest('.luz-painel-btn');
-    btn.classList.toggle('active');
-}
-
-function toggleCombustivel(tipo) {
-    const btn = event.target.closest('.combustivel-btn');
-    btn.classList.toggle('active');
-}
+function toggleLuzPainel(luz) { event.target.closest('.luz-painel-btn').classList.toggle('active'); }
+function toggleCombustivel(tipo) { event.target.closest('.combustivel-btn').classList.toggle('active'); }
 
 function salvarChecklist() {
     const clienteNome = document.getElementById('checklistClienteNome')?.value?.trim() || '';
     const clienteCPF = document.getElementById('checklistClienteCPF')?.value?.trim() || '';
     const veiculoPlaca = (document.getElementById('checklistVeiculoPlaca')?.value || '').toUpperCase().trim();
     const veiculoModelo = document.getElementById('checklistVeiculoModelo')?.value?.trim() || '';
-
-    let cliente = (AppState.data.clientes || []).find(c =>
-        c.nome?.trim().toLowerCase() === clienteNome.toLowerCase()
-    );
-
+    let cliente = (AppState.data.clientes || []).find(c => c.nome?.trim().toLowerCase() === clienteNome.toLowerCase());
     if (!cliente && clienteNome) {
-        cliente = {
-            id: Date.now(),
-            nome: clienteNome,
-            cpf: clienteCPF,
-            telefone: '',
-            email: '',
-            endereco: ''
-        };
+        cliente = { id: Date.now(), nome: clienteNome, cpf: clienteCPF, telefone: '', email: '', endereco: '' };
         AppState.data.clientes.push(cliente);
     }
-
-    let veiculo = (AppState.data.veiculos || []).find(v =>
-        v.placa?.toUpperCase() === veiculoPlaca
-    );
-
+    let veiculo = (AppState.data.veiculos || []).find(v => v.placa?.toUpperCase() === veiculoPlaca);
     if (!veiculo && veiculoPlaca && cliente) {
-        veiculo = {
-            id: Date.now() + 1,
-            placa: veiculoPlaca,
-            modelo: veiculoModelo || 'Nao informado',
-            clienteId: cliente.id,
-            chassis: '',
-            ano: '',
-            cor: ''
-        };
+        veiculo = { id: Date.now() + 1, placa: veiculoPlaca, modelo: veiculoModelo || 'Nao informado', clienteId: cliente.id, chassis: '', ano: '', cor: '' };
         AppState.data.veiculos.push(veiculo);
     }
-
     const checklist = {
         ...ChecklistState.checklistAtual,
-        clienteId: cliente?.id || null,
-        clienteNome,
-        clienteCPF,
-        veiculoId: veiculo?.id || null,
-        veiculoPlaca,
-        veiculoModelo,
+        clienteId: cliente?.id || null, clienteNome, clienteCPF,
+        veiculoId: veiculo?.id || null, veiculoPlaca, veiculoModelo,
         numeroOS: document.getElementById('checklistNumeroOS')?.textContent,
         hodometro: document.getElementById('hodometro')?.value,
         nivelCombustivel: parseInt(document.getElementById('nivelCombustivel')?.value),
@@ -707,222 +408,149 @@ function salvarChecklist() {
         assinaturaTecnico: document.getElementById('canvasAssinaturaTecnico')?.toDataURL(),
         status: 'completo'
     };
-
     ChecklistState.checklistAtual = checklist;
-
     const servicosEPecas = {
-        servicos: coletarServicos(),
-        pecas: coletarPecas(),
+        servicos: coletarServicos(), pecas: coletarPecas(),
         statusRegulacao: document.getElementById('statusRegulacao')?.value,
         seguradora: document.getElementById('seguradora')?.value,
         regulador: document.getElementById('regulador')?.value,
         dataRegulacao: document.getElementById('dataRegulacao')?.value
     };
-
     if (!AppState.data.checklists) AppState.data.checklists = [];
-
     const index = AppState.data.checklists.findIndex(c => c.id === checklist.id);
-    if (index >= 0) {
-        AppState.data.checklists[index] = checklist;
-    } else {
-        AppState.data.checklists.push(checklist);
-    }
-
+    if (index >= 0) AppState.data.checklists[index] = checklist;
+    else AppState.data.checklists.push(checklist);
     if (!AppState.data.servicosEPecas) AppState.data.servicosEPecas = [];
     const indexSP = AppState.data.servicosEPecas.findIndex(sp => sp.checklistId === checklist.id);
     servicosEPecas.checklistId = checklist.id;
-    if (indexSP >= 0) {
-        AppState.data.servicosEPecas[indexSP] = servicosEPecas;
-    } else {
-        AppState.data.servicosEPecas.push(servicosEPecas);
-    }
-
+    if (indexSP >= 0) AppState.data.servicosEPecas[indexSP] = servicosEPecas;
+    else AppState.data.servicosEPecas.push(servicosEPecas);
     saveToLocalStorage();
     if (typeof renderClientes === 'function') renderClientes();
     if (typeof renderVeiculos === 'function') renderVeiculos();
     if (typeof updateDashboard === 'function') updateDashboard();
-
     showToast('Checklist salvo com sucesso!');
 }
 
 function coletarItensChecklist() {
     const itens = {};
-    const checkboxes = document.querySelectorAll('.checklist-item input[type="checkbox"]');
-    checkboxes.forEach(cb => {
-        itens[cb.id] = cb.checked;
-    });
+    document.querySelectorAll('.checklist-item input[type="checkbox"]').forEach(cb => { itens[cb.id] = cb.checked; });
     return itens;
 }
 
-
 function gerarImagemMockChecklist(titulo, corFundo = '#0b5ed7') {
     const canvas = document.createElement('canvas');
-    canvas.width = 1200;
-    canvas.height = 800;
+    canvas.width = 1200; canvas.height = 800;
     const ctx = canvas.getContext('2d');
-
-    ctx.fillStyle = corFundo;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
-    ctx.fillRect(60, 60, canvas.width - 120, canvas.height - 120);
-
-    ctx.fillStyle = '#1f2937';
-    ctx.font = 'bold 56px Arial';
-    ctx.fillText('FASTCAR', 110, 180);
-
-    ctx.fillStyle = '#374151';
-    ctx.font = '36px Arial';
-    ctx.fillText(titulo, 110, 250);
-
-    ctx.strokeStyle = '#cbd5e1';
-    ctx.lineWidth = 8;
-    ctx.strokeRect(110, 300, canvas.width - 220, 360);
-
-    ctx.fillStyle = '#6b7280';
-    ctx.font = '30px Arial';
-    ctx.fillText('Imagem demonstrativa para previa do checklist', 150, 500);
-
+    ctx.fillStyle = corFundo; ctx.fillRect(0, 0, 1200, 800);
+    ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.fillRect(60, 60, 1080, 680);
+    ctx.fillStyle = '#1f2937'; ctx.font = 'bold 56px Arial'; ctx.fillText('FASTCAR', 110, 180);
+    ctx.fillStyle = '#374151'; ctx.font = '36px Arial'; ctx.fillText(titulo, 110, 250);
+    ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 8; ctx.strokeRect(110, 300, 980, 360);
+    ctx.fillStyle = '#6b7280'; ctx.font = '30px Arial'; ctx.fillText('Imagem demonstrativa', 150, 500);
     return canvas.toDataURL('image/jpeg', 0.75);
 }
 
 function preencherChecklistDemoCompleto(gerarPdfAoFinal = true) {
     const pageChecklist = document.getElementById('page-checklist');
-    if (!pageChecklist) {
-        showToast('Pagina de checklist nao esta disponivel no momento.', 'info');
-        return;
-    }
-
-    const setVal = (id, value) => {
-        const el = document.getElementById(id);
-        if (el) el.value = value;
-    };
-
+    if (!pageChecklist) { showToast('Pagina de checklist nao disponivel.', 'info'); return; }
+    const setVal = (id, value) => { const el = document.getElementById(id); if (el) el.value = value; };
     setVal('checklistClienteNome', 'Joao Silva de Almeida');
     setVal('checklistClienteCPF', '123.456.789-00');
     setVal('checklistVeiculoPlaca', 'ABC-1234');
     setVal('checklistVeiculoModelo', 'Fiat Uno 1.0 Fire Flex 2012');
     setVal('hodometro', '152364');
     setVal('nivelCombustivel', '4');
-    setVal('inspecaoLataria', 'Risco na porta dianteira esquerda e pequeno amassado no para-lama traseiro.');
-    setVal('inspecaoPneus', '4 pneus Pirelli com aproximadamente 80% de vida util.');
-    setVal('inspecaoVidros', 'Trinca pequena no para-brisa lado passageiro.');
-    setVal('inspecaoInterior', 'Banco do motorista com desgaste lateral e manopla levemente solta.');
-    setVal('observacoes', 'Veiculo entregue para orcamento completo. Cliente ciente de pre-existencias de lataria e vidros. Autoriza desmontagem tecnica para vistoria complementar.');
+    setVal('inspecaoLataria', 'Risco na porta dianteira esquerda.');
+    setVal('inspecaoPneus', '4 pneus Pirelli 80% de vida util.');
+    setVal('inspecaoVidros', 'Trinca no para-brisa lado passageiro.');
+    setVal('inspecaoInterior', 'Banco com desgaste lateral.');
+    setVal('observacoes', 'Veiculo entregue para orcamento completo.');
     setVal('statusRegulacao', 'parcial');
     setVal('seguradora', 'Porto Seguro');
     setVal('regulador', 'Carlos Menezes');
     setVal('dataRegulacao', new Date().toISOString().slice(0, 10));
-
     gerarNumeroOS();
-
-    document.querySelectorAll('.combustivel-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.combustivel-btn').forEach(btn => {
-        const txt = btn.textContent.toLowerCase();
-        if (txt.includes('flex')) btn.classList.add('active');
+        btn.classList.toggle('active', btn.textContent.toLowerCase().includes('flex'));
     });
-
     const luzesLigadas = ['motor', 'freio', 'abs'];
     document.querySelectorAll('.luz-painel-btn').forEach(btn => {
-        const label = btn.textContent.toLowerCase();
-        const ativa = luzesLigadas.some(chave => label.includes(chave));
-        btn.classList.toggle('active', ativa);
+        btn.classList.toggle('active', luzesLigadas.some(c => btn.textContent.toLowerCase().includes(c)));
     });
-
-    const checkboxes = Array.from(document.querySelectorAll('.checklist-item input[type="checkbox"]'));
-    checkboxes.forEach((cb, index) => {
-        cb.checked = index % 3 === 0 || index % 5 === 0;
-    });
-
+    Array.from(document.querySelectorAll('.checklist-item input[type="checkbox"]'))
+        .forEach((cb, i) => { cb.checked = i % 3 === 0 || i % 5 === 0; });
     const tabelaServicos = document.getElementById('tabelaServicos');
     const tabelaPecas = document.getElementById('tabelaPecas');
     if (tabelaServicos) tabelaServicos.innerHTML = '';
     if (tabelaPecas) tabelaPecas.innerHTML = '';
-
-    const servicosDemo = [
-        'Troca de oleo e filtro', 'Alinhamento completo', 'Balanceamento 4 rodas', 'Diagnostico eletronico',
-        'Higienizacao interna', 'Polimento tecnico', 'Reparo eletrico painel', 'Revisao sistema de freios',
-        'Troca fluido de freio', 'Limpeza bicos injetores', 'Regulagem farois', 'Troca correia auxiliar',
-        'Vistoria estrutural', 'Lavagem detalhada', 'Teste rodagem', 'Reaperto suspensao',
-        'Geometria dianteira', 'Calibracao pneus', 'Revisao ar-condicionado', 'Inspecao final de entrega'
-    ];
-
-    const pecasDemo = [
-        'Parachoque dianteiro', 'Parachoque traseiro', 'Farol esquerdo', 'Lanterna traseira direita',
-        'Retrovisor esquerdo', 'Para-lama dianteiro', 'Capo', 'Porta dianteira esquerda',
-        'Pastilha de freio', 'Disco de freio', 'Bateria 60Ah', 'Filtro de oleo',
-        'Filtro de ar', 'Correia dentada', 'Vela de ignicao', 'Oleo de motor 5W30',
-        'Pneu 175/65 R14', 'Amortecedor dianteiro', 'Radiador', 'Alternador'
-    ];
-
-    servicosDemo.forEach((descricao, i) => {
-        const linha = criarLinhaServico({
-            id: Date.now() + i,
-            descricao,
-            valor: (120 + i * 17.35).toFixed(2),
-            regulado: i % 2 === 0
-        });
-        tabelaServicos?.appendChild(linha);
-    });
-
-    pecasDemo.forEach((descricao, i) => {
-        const linha = criarLinhaPeca({
-            id: Date.now() + 100 + i,
-            descricao,
-            valor: (180 + i * 26.7).toFixed(2),
-            regulado: i % 3 === 0
-        });
-        tabelaPecas?.appendChild(linha);
-    });
-
+    const servicosDemo = ['Troca de oleo e filtro','Alinhamento completo','Balanceamento 4 rodas','Diagnostico eletronico','Higienizacao interna','Polimento tecnico','Reparo eletrico painel','Revisao sistema de freios','Troca fluido de freio','Limpeza bicos injetores','Regulagem farois','Troca correia auxiliar','Vistoria estrutural','Lavagem detalhada','Teste rodagem','Reaperto suspensao','Geometria dianteira','Calibracao pneus','Revisao ar-condicionado','Inspecao final de entrega'];
+    const pecasDemo = ['Parachoque dianteiro','Parachoque traseiro','Farol esquerdo','Lanterna traseira direita','Retrovisor esquerdo','Para-lama dianteiro','Capo','Porta dianteira esquerda','Pastilha de freio','Disco de freio','Bateria 60Ah','Filtro de oleo','Filtro de ar','Correia dentada','Vela de ignicao','Oleo de motor 5W30','Pneu 175/65 R14','Amortecedor dianteiro','Radiador','Alternador'];
+    servicosDemo.forEach((descricao, i) => { tabelaServicos?.appendChild(criarLinhaServico({ id: Date.now() + i, descricao, valor: (120 + i * 17.35).toFixed(2), regulado: i % 2 === 0 })); });
+    pecasDemo.forEach((descricao, i) => { tabelaPecas?.appendChild(criarLinhaPeca({ id: Date.now() + 100 + i, descricao, valor: (180 + i * 26.7).toFixed(2), regulado: i % 3 === 0 })); });
     const galeria = document.getElementById('galeriaFotos');
     if (galeria) galeria.innerHTML = '';
-    if (!ChecklistState.checklistAtual) {
-        criarNovoChecklist();
-    }
+    if (!ChecklistState.checklistAtual) criarNovoChecklist();
     ChecklistState.checklistAtual.fotos = [];
-
-    const cores = ['#0b5ed7', '#198754', '#6f42c1', '#fd7e14', '#dc3545'];
-    const titulos = ['Vista frontal', 'Lateral esquerda', 'Lateral direita', 'Traseira', 'Interior'];
-    titulos.forEach((titulo, i) => {
-        const imgData = gerarImagemMockChecklist(titulo, cores[i % cores.length]);
-        adicionarFotoNaGaleria(imgData, `${titulo}.jpg`);
+    const cores = ['#0b5ed7','#198754','#6f42c1','#fd7e14','#dc3545'];
+    ['Vista frontal','Lateral esquerda','Lateral direita','Traseira','Interior'].forEach((titulo, i) => {
+        adicionarFotoNaGaleria(gerarImagemMockChecklist(titulo, cores[i % cores.length]), titulo + '.jpg');
     });
-
     const preencherAssinatura = (canvasId, nome) => {
         const canvas = document.getElementById(canvasId);
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.strokeStyle = '#111827';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(16, 90);
-        ctx.bezierCurveTo(60, 20, 120, 130, 190, 70);
-        ctx.bezierCurveTo(210, 55, 235, 85, 275, 45);
-        ctx.stroke();
-        ctx.font = '12px Arial';
-        ctx.fillStyle = '#4b5563';
-        ctx.fillText(nome, 12, 140);
+        ctx.strokeStyle = '#111827'; ctx.lineWidth = 2; ctx.beginPath();
+        ctx.moveTo(16, 90); ctx.bezierCurveTo(60, 20, 120, 130, 190, 70);
+        ctx.bezierCurveTo(210, 55, 235, 85, 275, 45); ctx.stroke();
+        ctx.font = '12px Arial'; ctx.fillStyle = '#4b5563'; ctx.fillText(nome, 12, 140);
     };
-
     preencherAssinatura('canvasAssinaturaCliente', 'Joao Silva');
     preencherAssinatura('canvasAssinaturaTecnico', 'Rafael Tecnico');
-
     atualizarResumoFinanceiro();
-    showToast('Checklist demo completo preenchido!', 'success');
+    showToast('Checklist demo preenchido!', 'success');
+    if (gerarPdfAoFinal) gerarPDF();
+}
 
-    if (gerarPdfAoFinal) {
-        gerarPDF();
-    }
+// ── ICONE WHATSAPP OFICIAL: SVG convertido em PNG via canvas ────────────────
+// Usa o path oficial do WhatsApp para gerar um dataURL compativel com jsPDF
+function getWhatsAppIconDataURL(size = 32) {
+    const canvas = document.createElement('canvas');
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    // Fundo verde WhatsApp
+    ctx.fillStyle = '#25D366';
+    ctx.beginPath();
+    ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
+    ctx.fill();
+    // Icone do telefone/balao do WhatsApp desenhado em branco (path simplificado)
+    ctx.fillStyle = '#FFFFFF';
+    const s = size / 32; // escala base 32px
+    ctx.beginPath();
+    // Balao de mensagem arredondado
+    ctx.moveTo(16*s, 5*s);
+    ctx.arc(16*s, 16*s, 11*s, -Math.PI*0.9, Math.PI*0.9);
+    ctx.arc(16*s, 16*s, 11*s, Math.PI*0.9, Math.PI*1.1);
+    ctx.lineTo(7*s, 27*s); // cauda do balao
+    ctx.arc(16*s, 16*s, 11*s, Math.PI*1.1, -Math.PI*0.9);
+    ctx.fill();
+    // Redesenha fundo verde no interior para criar efeito de contorno
+    ctx.fillStyle = '#25D366';
+    ctx.beginPath();
+    ctx.arc(16*s, 16*s, 8.5*s, 0, Math.PI * 2);
+    ctx.fill();
+    // Handset / telefone branco no centro
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = `bold ${Math.round(12*s)}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('\u2706', 16*s, 16*s);
+    return canvas.toDataURL('image/png');
 }
 
 async function gerarPDF() {
-    if (typeof window.jspdf === 'undefined') {
-        showToast('Biblioteca jsPDF nao carregada', 'info');
-        return;
-    }
-
+    if (typeof window.jspdf === 'undefined') { showToast('Biblioteca jsPDF nao carregada', 'info'); return; }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
 
@@ -944,9 +572,17 @@ async function gerarPDF() {
     const combustivelNivel = document.getElementById('nivelCombustivel')?.value || '0';
     const observacoes = document.getElementById('observacoes')?.value?.trim() || '-';
 
-    const combustivelTipos = Array.from(document.querySelectorAll('.combustivel-btn.active'))
-        .map(btn => btn.textContent.trim())
-        .filter(Boolean);
+    // Dados de regulacao
+    const statusRegulacao = document.getElementById('statusRegulacao')?.value || '';
+    const seguradora = document.getElementById('seguradora')?.value?.trim() || '';
+    const regulador = document.getElementById('regulador')?.value?.trim() || '';
+    const dataRegulacao = document.getElementById('dataRegulacao')?.value || '';
+
+    // Tipo de pagador (seguradora / associacao / cliente) derivado do statusRegulacao
+    const tipoMap = { 'total': 'SEGURADORA', 'parcial': 'SEGURADORA / CLIENTE', 'pendente': 'CLIENTE', 'associacao': 'ASSOCIACAO' };
+    const tipoPagador = tipoMap[statusRegulacao] || statusRegulacao.toUpperCase() || 'NAO INFORMADO';
+
+    const combustivelTipos = Array.from(document.querySelectorAll('.combustivel-btn.active')).map(btn => btn.textContent.trim()).filter(Boolean);
 
     const inspecaoVisual = {
         lataria: document.getElementById('inspecaoLataria')?.value?.trim() || '-',
@@ -962,15 +598,9 @@ async function gerarPDF() {
         return { label, marcado: !!checkbox?.checked };
     });
 
-    const luzesPainel = Array.from(document.querySelectorAll('.luz-painel-btn')).map(btn => ({
-        label: btn.textContent.replace(/\s+/g, ' ').trim(),
-        marcado: btn.classList.contains('active')
-    }));
-
     const servicos = coletarServicos();
     const pecas = coletarPecas();
     const fotos = (ChecklistState.checklistAtual?.fotos || []).slice(0, 9);
-
     const assinaturaCliente = document.getElementById('canvasAssinaturaCliente')?.toDataURL('image/png');
     const assinaturaTecnico = document.getElementById('canvasAssinaturaTecnico')?.toDataURL('image/png');
 
@@ -978,187 +608,89 @@ async function gerarPDF() {
     const dataEmissao = now.toLocaleDateString('pt-BR');
     const horaEmissao = now.toLocaleTimeString('pt-BR');
     const dataArquivo = dataEmissao.replace(/\//g, '-');
-
     const formatCurrency = (valor) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(valor || 0));
 
     const PAGE = { x: 12, y: 10, w: 186, h: 277 };
 
-    const drawBasePage = () => {
-        doc.setDrawColor(210, 210, 210);
-        doc.rect(PAGE.x, PAGE.y, PAGE.w, PAGE.h);
-    };
+    // Gera icone WhatsApp real via canvas
+    const whatsappIconData = getWhatsAppIconDataURL(64);
 
-    // ── ICONE WHATSAPP: circulo verde + W branco desenhado com jsPDF ────────
-    // jsPDF nao suporta emojis, por isso desenhamos o icone vetorialmente
-    const drawWhatsAppIcon = (x, y, r) => {
-        // Circulo verde de fundo
-        doc.setFillColor(37, 211, 102);
-        doc.setDrawColor(37, 211, 102);
-        doc.circle(x, y, r, 'F');
-
-        // Letra W branca centralizada dentro do circulo
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(r * 2.2); // tamanho proporcional ao raio
-        doc.text('W', x, y + r * 0.45, { align: 'center' });
-    };
+    const drawBasePage = () => { doc.setDrawColor(210, 210, 210); doc.rect(PAGE.x, PAGE.y, PAGE.w, PAGE.h); };
 
     const drawHeader = () => {
         doc.setDrawColor(225, 225, 225);
         doc.line(22, 17, 188, 17);
-
-        // Box logo
-        doc.setFillColor(255, 255, 255);
-        doc.setDrawColor(225, 225, 225);
+        doc.setFillColor(255, 255, 255); doc.setDrawColor(225, 225, 225);
         doc.roundedRect(22, 22, 20, 14, 1, 1, 'FD');
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(205, 25, 25);
-        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(205, 25, 25); doc.setFontSize(8);
         doc.text('FAST CAR', 32, 30, { align: 'center' });
-
-        // Nome da oficina
-        doc.setFontSize(10.5);
-        doc.text(oficina.nome, 45, 25);
-
-        // Endereco
-        doc.setTextColor(110, 110, 110);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(6.3);
+        doc.setFontSize(10.5); doc.text(oficina.nome, 45, 25);
+        doc.setTextColor(110, 110, 110); doc.setFont('helvetica', 'normal'); doc.setFontSize(6.3);
         doc.text(oficina.endereco, 45, 29);
-
-        // Icone WhatsApp vetorial (circulo verde + W) + telefone
-        drawWhatsAppIcon(47, 31.8, 1.5);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(110, 110, 110);
-        doc.setFontSize(6.3);
-        doc.text(oficina.telefone, 50, 32.5);
-
-        // CNPJ
+        // Icone WhatsApp oficial (PNG gerado via canvas) + telefone
+        doc.addImage(whatsappIconData, 'PNG', 45, 30.2, 3.2, 3.2);
+        doc.text(oficina.telefone, 49.5, 32.5);
         doc.text('CNPJ: ' + oficina.cnpj, 45, 36);
-
-        // OS no canto direito
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(120, 120, 120);
-        doc.setFontSize(6.4);
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(120, 120, 120); doc.setFontSize(6.4);
         doc.text('ORDEM DE SERVICO', 188, 31, { align: 'right' });
-        doc.setTextColor(205, 25, 25);
-        doc.setFontSize(12);
+        doc.setTextColor(205, 25, 25); doc.setFontSize(12);
         doc.text(osNum, 188, 36.5, { align: 'right' });
-
-        // Linha vermelha separadora
-        doc.setDrawColor(220, 40, 40);
-        doc.setLineWidth(0.7);
-        doc.line(22, 40.5, 188, 40.5);
-        doc.setLineWidth(0.2);
+        doc.setDrawColor(220, 40, 40); doc.setLineWidth(0.7);
+        doc.line(22, 40.5, 188, 40.5); doc.setLineWidth(0.2);
     };
 
     const drawFooter = () => {
-        doc.setDrawColor(190, 190, 190);
-        doc.line(22, 255, 188, 255);
-
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(140, 140, 140);
-        doc.setFontSize(5.6);
+        doc.setDrawColor(190, 190, 190); doc.line(22, 255, 188, 255);
+        doc.setFont('helvetica', 'normal'); doc.setTextColor(140, 140, 140); doc.setFontSize(5.6);
         doc.text('ASSINATURA DO CLIENTE', 55, 260, { align: 'center' });
         doc.text('ASSINATURA DO TECNICO', 155, 260, { align: 'center' });
-        doc.text(
-            'CHECKLIST GERADO POR ' + oficina.nome + ' CNPJ: ' + oficina.cnpj + ' - ' + dataEmissao + ', ' + horaEmissao,
-            105,
-            269,
-            { align: 'center' }
-        );
+        doc.text('CHECKLIST GERADO POR ' + oficina.nome + ' CNPJ: ' + oficina.cnpj + ' - ' + dataEmissao + ', ' + horaEmissao, 105, 269, { align: 'center' });
     };
 
     const drawSignatures = () => {
         doc.setDrawColor(160, 160, 160);
-        doc.line(22, 255, 95, 255);
-        doc.line(115, 255, 188, 255);
-
-        if (assinaturaCliente) {
-            doc.addImage(assinaturaCliente, 'PNG', 27, 242, 62, 11, undefined, 'FAST');
-        }
-        if (assinaturaTecnico) {
-            doc.addImage(assinaturaTecnico, 'PNG', 120, 242, 62, 11, undefined, 'FAST');
-        }
+        doc.line(22, 255, 95, 255); doc.line(115, 255, 188, 255);
+        if (assinaturaCliente) doc.addImage(assinaturaCliente, 'PNG', 27, 242, 62, 11, undefined, 'FAST');
+        if (assinaturaTecnico) doc.addImage(assinaturaTecnico, 'PNG', 120, 242, 62, 11, undefined, 'FAST');
     };
 
     const drawSectionBox = (x, y, w, h, title, lines = []) => {
-        doc.setDrawColor(215, 215, 215);
-        doc.setFillColor(250, 250, 250);
+        doc.setDrawColor(215, 215, 215); doc.setFillColor(250, 250, 250);
         doc.roundedRect(x, y, w, h, 1.5, 1.5, 'FD');
-
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(45, 45, 45);
-        doc.setFontSize(6.5);
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(45, 45, 45); doc.setFontSize(6.5);
         doc.text(title.toUpperCase(), x + 2, y + 5);
-
-        doc.setDrawColor(235, 235, 235);
-        doc.line(x + 1.5, y + 6.5, x + w - 1.5, y + 6.5);
-
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(70, 70, 70);
-        doc.setFontSize(8);
+        doc.setDrawColor(235, 235, 235); doc.line(x + 1.5, y + 6.5, x + w - 1.5, y + 6.5);
+        doc.setFont('helvetica', 'normal'); doc.setTextColor(70, 70, 70); doc.setFontSize(8);
         let ly = y + 11;
         lines.forEach((line) => {
-            const wrapped = doc.splitTextToSize(line, w - 4);
-            wrapped.forEach((part) => {
-                if (ly < y + h - 1) {
-                    doc.text(part, x + 2, ly);
-                    ly += 3.8;
-                }
+            doc.splitTextToSize(line, w - 4).forEach((part) => {
+                if (ly < y + h - 1) { doc.text(part, x + 2, ly); ly += 3.8; }
             });
         });
     };
 
-    // ── INSPECAO DE ENTRADA: badges coloridos ────────────────────────────
     const drawInspectionChecks = (x, y, w, h, items) => {
-        doc.setDrawColor(215, 215, 215);
-        doc.setFillColor(250, 250, 250);
+        doc.setDrawColor(215, 215, 215); doc.setFillColor(250, 250, 250);
         doc.roundedRect(x, y, w, h, 1.5, 1.5, 'FD');
-
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(45, 45, 45);
-        doc.setFontSize(6.5);
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(45, 45, 45); doc.setFontSize(6.5);
         doc.text('INSPECAO DE ENTRADA', x + 2, y + 5);
-        doc.setDrawColor(235, 235, 235);
-        doc.line(x + 1.5, y + 6.5, x + w - 1.5, y + 6.5);
-
-        const badgeH = 4.5;
-        const badgePadX = 2;
-        const gap = 1.5;
-        let curX = x + 2;
-        let curY = y + 10;
-        const maxX = x + w - 2;
-        const maxY = y + h - 2;
-
+        doc.setDrawColor(235, 235, 235); doc.line(x + 1.5, y + 6.5, x + w - 1.5, y + 6.5);
+        const badgeH = 4.5, badgePadX = 2, gap = 1.5;
+        let curX = x + 2, curY = y + 10;
+        const maxX = x + w - 2, maxY = y + h - 2;
         doc.setFontSize(5.8);
-
         items.forEach((item) => {
-            const text = item.label;
-            const textWidth = doc.getTextWidth(text);
+            const textWidth = doc.getTextWidth(item.label);
             const badgeW = textWidth + badgePadX * 2 + 4;
-
-            if (curX + badgeW > maxX) {
-                curX = x + 2;
-                curY += badgeH + gap;
-            }
+            if (curX + badgeW > maxX) { curX = x + 2; curY += badgeH + gap; }
             if (curY + badgeH > maxY) return;
-
-            if (item.marcado) {
-                doc.setFillColor(25, 135, 84);
-                doc.setTextColor(255, 255, 255);
-            } else {
-                doc.setFillColor(220, 220, 220);
-                doc.setTextColor(100, 100, 100);
-            }
+            if (item.marcado) { doc.setFillColor(25, 135, 84); doc.setTextColor(255, 255, 255); }
+            else { doc.setFillColor(220, 220, 220); doc.setTextColor(100, 100, 100); }
             doc.roundedRect(curX, curY, badgeW, badgeH, 1, 1, 'F');
-
             doc.setFont('helvetica', 'bold');
             doc.text(item.marcado ? '+' : '-', curX + 1.5, curY + 3.3);
-
             doc.setFont('helvetica', 'normal');
-            doc.text(text, curX + 4.5, curY + 3.3);
-
+            doc.text(item.label, curX + 4.5, curY + 3.3);
             curX += badgeW + gap;
         });
     };
@@ -1167,60 +699,62 @@ async function gerarPDF() {
         const img = new Image();
         img.onload = () => {
             const canvas = document.createElement('canvas');
-            const maxW = 640;
-            const scale = Math.min(1, maxW / img.width);
-            canvas.width = Math.round(img.width * scale);
-            canvas.height = Math.round(img.height * scale);
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            const maxW = 640, scale = Math.min(1, maxW / img.width);
+            canvas.width = Math.round(img.width * scale); canvas.height = Math.round(img.height * scale);
+            canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
             resolve(canvas.toDataURL('image/jpeg', 0.7));
         };
         img.onerror = () => resolve(dataUrl);
         img.src = dataUrl;
     });
 
-    const preparePage = () => {
-        drawBasePage();
-        drawHeader();
-    };
-
+    // ── Tabela com colunas: DESCRICAO | VALOR | REGULADO ────────────────────
     const drawCompactTableCard = (x, y, w, title, color, items, totalLabel) => {
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(30, 30, 30);
-        doc.setFontSize(8.5);
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(30, 30, 30); doc.setFontSize(8.5);
         doc.text(title, x, y);
-
-        const top = y + 3;
-        const tableHeight = 157;
+        const top = y + 3, tableHeight = 157;
         doc.setDrawColor(color[0], color[1], color[2]);
         doc.roundedRect(x, top, w, tableHeight, 1.5, 1.5);
 
-        const split = x + w * 0.72;
+        // 3 colunas: descricao 58%, valor 26%, regulado 16%
+        const colDesc  = x;
+        const colValor = x + w * 0.58;
+        const colReg   = x + w * 0.84;
         doc.setDrawColor(205, 205, 205);
-        doc.line(split, top, split, top + tableHeight);
+        doc.line(colValor, top, colValor, top + tableHeight);
+        doc.line(colReg, top, colReg, top + tableHeight);
         doc.line(x, top + 6, x + w, top + 6);
 
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(55, 55, 55);
-        doc.setFontSize(6.8);
-        doc.text('DESCRICAO', x + 1.6, top + 4.4);
-        doc.text('VALOR', x + w - 1.8, top + 4.4, { align: 'right' });
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(55, 55, 55); doc.setFontSize(6.8);
+        doc.text('DESCRICAO', colDesc + 1.6, top + 4.4);
+        doc.text('VALOR', colValor + 1.6, top + 4.4);
+        doc.text('REGULADO', colReg + 1.6, top + 4.4);
 
         const maxRows = 40;
-        const shown = items.slice(0, maxRows);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(5.6);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(5.6);
         let rowY = top + 9.6;
         const rowH = 3.7;
 
-        shown.forEach((item, idx) => {
-            if (idx > 0) {
-                doc.setDrawColor(228, 228, 228);
-                doc.line(x, rowY - 2.4, x + w, rowY - 2.4);
+        items.slice(0, maxRows).forEach((item, idx) => {
+            if (idx > 0) { doc.setDrawColor(228, 228, 228); doc.line(x, rowY - 2.4, x + w, rowY - 2.4); }
+            const desc = doc.splitTextToSize(item.descricao || '-', w * 0.56)[0] || '-';
+            doc.setTextColor(50, 50, 50);
+            doc.text(desc, colDesc + 1.6, rowY);
+            doc.text(formatCurrency(item.valor || 0), colValor + 1.6, rowY);
+            // Badge REGULADO
+            if (item.regulado) {
+                doc.setFillColor(25, 135, 84); // verde
+                doc.roundedRect(colReg + 1.2, rowY - 2.6, 11, 3.5, 0.8, 0.8, 'F');
+                doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold');
+                doc.text('SIM', colReg + 3.2, rowY);
+                doc.setFont('helvetica', 'normal');
+            } else {
+                doc.setFillColor(220, 60, 60); // vermelho
+                doc.roundedRect(colReg + 1.2, rowY - 2.6, 11, 3.5, 0.8, 0.8, 'F');
+                doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold');
+                doc.text('NAO', colReg + 2.8, rowY);
+                doc.setFont('helvetica', 'normal');
             }
-            const desc = doc.splitTextToSize(item.descricao || '-', w * 0.68 - 1.2)[0] || '-';
-            doc.text(desc, x + 1.6, rowY);
-            doc.text(formatCurrency(item.valor || 0), x + w - 1.8, rowY, { align: 'right' });
             rowY += rowH;
             if (rowY > top + tableHeight - 1.5) return;
         });
@@ -1229,123 +763,129 @@ async function gerarPDF() {
         const totalY = top + tableHeight + 4;
         doc.setDrawColor(color[0], color[1], color[2]);
         doc.roundedRect(x, totalY, w, 10, 1.5, 1.5);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(color[0], color[1], color[2]);
-        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(color[0], color[1], color[2]); doc.setFontSize(10);
         doc.text(totalLabel, x + 3, totalY + 6.5);
         doc.text(formatCurrency(total), x + w - 3, totalY + 6.5, { align: 'right' });
-
         if (items.length > maxRows) {
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(130, 130, 130);
-            doc.setFontSize(5.5);
+            doc.setFont('helvetica', 'normal'); doc.setTextColor(130, 130, 130); doc.setFontSize(5.5);
             doc.text('Exibindo 40 de ' + items.length + ' itens', x + 2, totalY + 13.5);
         }
-
         return { total };
+    };
+
+    // ── Secao de regulacao (seguradora / associacao / cliente) ──────────────
+    const drawRegulacaoBox = (x, y, w, h) => {
+        // Cor de fundo de acordo com o tipo
+        const corTipo = statusRegulacao === 'total' ? [25, 135, 84]
+            : statusRegulacao === 'parcial' ? [255, 165, 0]
+            : statusRegulacao === 'associacao' ? [13, 110, 253]
+            : [220, 53, 69];
+
+        doc.setDrawColor(corTipo[0], corTipo[1], corTipo[2]);
+        doc.setFillColor(250, 250, 250);
+        doc.roundedRect(x, y, w, h, 1.5, 1.5, 'FD');
+
+        // Header colorido
+        doc.setFillColor(corTipo[0], corTipo[1], corTipo[2]);
+        doc.roundedRect(x, y, w, 7, 1.5, 1.5, 'F');
+        doc.setFillColor(corTipo[0], corTipo[1], corTipo[2]);
+        doc.rect(x, y + 3.5, w, 3.5, 'F'); // cobre bordas arredondadas do topo
+
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255); doc.setFontSize(6.5);
+        doc.text('REGULACAO / RESPONSAVEL PELO PAGAMENTO', x + 2, y + 5);
+
+        doc.setDrawColor(235, 235, 235); doc.line(x + 1.5, y + 7, x + w - 1.5, y + 7);
+
+        // Tipo com badge colorido
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(corTipo[0], corTipo[1], corTipo[2]); doc.setFontSize(8);
+        doc.text('TIPO: ', x + 2, y + 12);
+        const tipoLargura = doc.getTextWidth(tipoPagador) + 4;
+        doc.setFillColor(corTipo[0], corTipo[1], corTipo[2]);
+        doc.roundedRect(x + 13, y + 8.5, tipoLargura, 5, 1, 1, 'F');
+        doc.setTextColor(255, 255, 255); doc.setFontSize(7);
+        doc.text(tipoPagador, x + 15, y + 12.2);
+
+        // Dados
+        doc.setFont('helvetica', 'normal'); doc.setTextColor(60, 60, 60); doc.setFontSize(6.5);
+        const col2 = x + w / 2;
+        doc.text('SEGURADORA: ' + (seguradora || 'Nao informada'), x + 2, y + 18);
+        doc.text('REGULADOR: ' + (regulador || 'Nao informado'), col2, y + 18);
+        doc.text('DATA REGULACAO: ' + (dataRegulacao ? new Date(dataRegulacao + 'T12:00:00').toLocaleDateString('pt-BR') : '-'), x + 2, y + 22.5);
+        doc.text('STATUS: ' + (statusRegulacao || 'pendente').toUpperCase(), col2, y + 22.5);
     };
 
     showToast('Gerando PDF...');
 
     // ── PAGINA 1 ────────────────────────────────────────────────────────────
-    preparePage();
+    drawBasePage(); drawHeader();
 
     drawSectionBox(22, 44, 82, 34, 'CLIENTE', [
-        'NOME: ' + cliente,
-        'CPF/CNPJ: ' + cpf,
-        'TEL: ' + telefoneCliente
+        'NOME: ' + cliente, 'CPF/CNPJ: ' + cpf, 'TEL: ' + telefoneCliente
     ]);
-
     drawSectionBox(107, 44, 81, 34, 'VEICULO', [
-        'VEICULO: ' + modelo + '  ' + placa,
-        'CHASSI: ' + chassis,
+        'VEICULO: ' + modelo + '  ' + placa, 'CHASSI: ' + chassis,
         'KM: ' + hodometro + ' | COMB: ' + (combustivelTipos.join('/') || 'SELECIONE...') + ' (' + combustivelNivel + '%)',
         'DATA: ' + dataEmissao + ' AS ' + horaEmissao.slice(0, 5)
     ]);
-
     drawSectionBox(22, 81, 166, 16, 'SERVICOS SOLICITADOS', servicos.length ? servicos.map(s => s.descricao) : ['-']);
-
     drawInspectionChecks(22, 100, 166, 28, itensEntrada);
-
-    const obsLinhas = [
+    drawSectionBox(22, 131, 166, 19, 'OBSERVACOES DA INSPECAO', [
         'Lataria: ' + inspecaoVisual.lataria,
         'Pneus: ' + inspecaoVisual.pneus,
         'Vidros: ' + inspecaoVisual.vidros,
         'Interior: ' + inspecaoVisual.interior,
         observacoes
-    ];
-    drawSectionBox(22, 131, 166, 19, 'OBSERVACOES DA INSPECAO', obsLinhas);
+    ]);
 
-    // ── FOTOS: 3 cima + 6 baixo ──────────────────────────────────────────
+    // Fotos: 3 cima + 6 baixo
     const fotosComprimidas = [];
-    for (const foto of fotos) {
-        fotosComprimidas.push({ nome: foto.nome, url: await compressPhoto(foto.url) });
-    }
-
-    const fotoBoxY = 153;
-    const fotoBoxH = 95;
+    for (const foto of fotos) fotosComprimidas.push({ nome: foto.nome, url: await compressPhoto(foto.url) });
+    const fotoBoxY = 153, fotoBoxH = 88;
     drawSectionBox(22, fotoBoxY, 166, fotoBoxH, 'FOTOS DO VEICULO', []);
-
     if (fotosComprimidas.length > 0) {
-        const topFotos = fotosComprimidas.slice(0, 3);
-        const fotoLarguraCima = 51;
-        const fotoAlturaCima  = 38;
-        topFotos.forEach((foto, i) => {
-            const fx = 24 + i * (fotoLarguraCima + 2);
-            const fy = fotoBoxY + 8;
-            doc.setDrawColor(200, 40, 40);
-            doc.roundedRect(fx, fy, fotoLarguraCima, fotoAlturaCima, 1, 1);
+        const fotoLarguraCima = 51, fotoAlturaCima = 36;
+        fotosComprimidas.slice(0, 3).forEach((foto, i) => {
+            const fx = 24 + i * (fotoLarguraCima + 2), fy = fotoBoxY + 8;
+            doc.setDrawColor(200, 40, 40); doc.roundedRect(fx, fy, fotoLarguraCima, fotoAlturaCima, 1, 1);
             doc.addImage(foto.url, 'JPEG', fx + 0.5, fy + 0.5, fotoLarguraCima - 1, fotoAlturaCima - 1, undefined, 'FAST');
         });
-
-        const botFotos = fotosComprimidas.slice(3, 9);
-        const fotoLarguraBaixo = 25;
-        const fotoAlturaBaixo  = 19;
-        botFotos.forEach((foto, i) => {
-            const fx = 24 + i * (fotoLarguraBaixo + 2.2);
-            const fy = fotoBoxY + 8 + fotoAlturaCima + 3;
-            doc.setDrawColor(200, 40, 40);
-            doc.roundedRect(fx, fy, fotoLarguraBaixo, fotoAlturaBaixo, 1, 1);
+        const fotoLarguraBaixo = 25, fotoAlturaBaixo = 18;
+        fotosComprimidas.slice(3, 9).forEach((foto, i) => {
+            const fx = 24 + i * (fotoLarguraBaixo + 2.2), fy = fotoBoxY + 8 + fotoAlturaCima + 3;
+            doc.setDrawColor(200, 40, 40); doc.roundedRect(fx, fy, fotoLarguraBaixo, fotoAlturaBaixo, 1, 1);
             doc.addImage(foto.url, 'JPEG', fx + 0.5, fy + 0.5, fotoLarguraBaixo - 1, fotoAlturaBaixo - 1, undefined, 'FAST');
         });
     }
 
-    drawSignatures();
-    drawFooter();
+    drawSignatures(); drawFooter();
 
-    // ── PAGINA 2 - PECAS E SERVICOS ──────────────────────────────────────
+    // ── PAGINA 2 - PECAS, SERVICOS E REGULACAO ──────────────────────────────
     doc.addPage();
-    preparePage();
+    drawBasePage(); drawHeader();
 
     const cardPecas = drawCompactTableCard(22, 47, 82, 'PECAS', [20, 105, 200], pecas, 'TOTAL PECAS');
     const cardServicos = drawCompactTableCard(107, 47, 81, 'SERVICOS', [220, 40, 40], servicos, 'TOTAL SERVICOS');
 
+    // Total geral
     const totalGeral = cardPecas.total + cardServicos.total;
     doc.setFillColor(240, 240, 240);
-    doc.roundedRect(22, 232, 166, 12, 1.5, 1.5, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(55, 55, 55);
-    doc.setFontSize(11);
-    doc.text('TOTAL GERAL:', 104, 240, { align: 'center' });
+    doc.roundedRect(22, 222, 166, 12, 1.5, 1.5, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setTextColor(55, 55, 55); doc.setFontSize(11);
+    doc.text('TOTAL GERAL:', 104, 230, { align: 'center' });
     doc.setTextColor(28, 170, 90);
-    doc.text(formatCurrency(totalGeral), 182, 240, { align: 'right' });
+    doc.text(formatCurrency(totalGeral), 182, 230, { align: 'right' });
 
-    drawSignatures();
-    drawFooter();
+    // Secao de regulacao logo abaixo do total geral
+    drawRegulacaoBox(22, 237, 166, 27);
+
+    drawSignatures(); drawFooter();
 
     doc.save('OS-' + placa + '-' + dataArquivo + '_CHECKLIST.pdf');
     showToast('PDF gerado com sucesso!', 'success');
 }
 
-
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        if (document.getElementById('page-checklist')) {
-            initChecklist();
-        }
-    });
+    document.addEventListener('DOMContentLoaded', () => { if (document.getElementById('page-checklist')) initChecklist(); });
 } else {
-    if (document.getElementById('page-checklist')) {
-        initChecklist();
-    }
+    if (document.getElementById('page-checklist')) initChecklist();
 }
