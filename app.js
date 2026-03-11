@@ -3,8 +3,9 @@ const AppState = {
     currentPage: 'dashboard',
     user: null,
     oficina: {
-        nome: 'OFICINA FASTCAR',
-        nomeExibicao: 'Perplexity',
+        nome: '',
+        nomeExibicao: '',
+        subtitulo: '',
         endereco: 'Rua das Oficinas, 123 - Centro',
         telefone: '(31) 99999-9999',
         cnpj: '00.000.000/0000-00',
@@ -12,7 +13,7 @@ const AppState = {
         site: '',
         corPrimaria: '#27ae60',
         rodapePDF: 'Obrigado pela preferencia!',
-        logo: 'https://via.placeholder.com/40'
+        logo: 'logo-default.png'
     },
     data: {
         ordensServico: [
@@ -216,7 +217,7 @@ const AppState = {
 };
 
 function initApp() {
-    console.log('Perplexity v5.0 - FASE 5: Sistema de Agendamento + Dashboard Interativo');
+    console.log('Iniciando sistema de gestao');
     
     if (!checkAuth()) {
         window.location.href = 'login.html';
@@ -412,9 +413,11 @@ function showToastFallback(message, type = 'info') {
 }
 
 function updateOficinaNome() {
-    const nomeExibicao = AppState.oficina.nomeExibicao || AppState.oficina.nome;
+    const nomeExibicao = AppState.oficina.nomeExibicao || AppState.oficina.nome || 'Sistema de Gestao';
+    const subtitulo = AppState.oficina.subtitulo || 'Sistema de Gestao';
     const nomeElement = document.getElementById('oficinaNome');
     const sidebarNome = document.getElementById('sidebarNomeSistema');
+    const subtituloElement = document.getElementById('oficinaSubtitulo');
 
     if (nomeElement && nomeExibicao) {
         nomeElement.textContent = nomeExibicao;
@@ -422,6 +425,10 @@ function updateOficinaNome() {
 
     if (sidebarNome && nomeExibicao) {
         sidebarNome.textContent = nomeExibicao;
+    }
+
+    if (subtituloElement) {
+        subtituloElement.textContent = subtitulo;
     }
 }
 
