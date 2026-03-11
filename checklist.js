@@ -587,16 +587,13 @@ async function gerarPDF() {
     const hodometro = document.getElementById('hodometro')?.value?.trim() || '-';
     const combustivelNivel = document.getElementById('nivelCombustivel')?.value || '0';
     const observacoes = document.getElementById('observacoes')?.value?.trim() || '-';
-
     const combustivelTipos = Array.from(document.querySelectorAll('.combustivel-btn.active')).map(btn => btn.textContent.trim()).filter(Boolean);
-
     const inspecaoVisual = {
         lataria: document.getElementById('inspecaoLataria')?.value?.trim() || '-',
         pneus: document.getElementById('inspecaoPneus')?.value?.trim() || '-',
         vidros: document.getElementById('inspecaoVidros')?.value?.trim() || '-',
         interior: document.getElementById('inspecaoInterior')?.value?.trim() || '-'
     };
-
     const itensEntrada = Array.from(document.querySelectorAll('.checklist-item')).map(item => {
         const checkbox = item.querySelector('input[type="checkbox"]');
         const labelEl = item.querySelector('label') || item.querySelector('.badge') || item.querySelector('span');
@@ -607,23 +604,26 @@ async function gerarPDF() {
     const servicos = coletarServicos();
     const pecas = coletarPecas();
     const fotos = (ChecklistState.checklistAtual?.fotos || []).slice(0, 9);
-
     const assinaturaCliente = document.getElementById('canvasAssinaturaCliente')?.toDataURL('image/png');
     const assinaturaTecnico = document.getElementById('canvasAssinaturaTecnico')?.toDataURL('image/png');
 
     const now = new Date();
     const dataEmissao = now.toLocaleDateString('pt-BR');
     const horaEmissao = now.toLocaleTimeString('pt-BR');
-    // Validade: 15 dias a partir da emissao
     const dataValidade = new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR');
     const dataArquivo = dataEmissao.replace(/\//g, '-');
     const nomeArquivo = 'OS-' + placa + '-' + dataArquivo + '_CHECKLIST.pdf';
     const formatCurrency = (valor) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(valor || 0));
 
-    const PAGE = { x: 12, y: 10, w: 186, h: 277 };
+    const PAGE_W = 210, PAGE_H = 297;
+    const MARGIN_X = 12, MARGIN_Y = 10;
+    const CONTENT_X = 22, CONTENT_W = 166;
+    // area util para conteudo (abaixo do header, acima do footer)
+    const CONTENT_TOP = 44;
+    const CONTENT_BOTTOM = 268; // deixa espaco pro footer
     const whatsappIconData = getWhatsAppIconDataURL(64);
 
-    const drawBasePage = () => { doc.setDrawColor(210, 210, 210); doc.rect(PAGE.x, PAGE.y, PAGE.w, PAGE.h); };
+    const drawBasePage = () => { doc.setDrawColor(210, 210, 210); doc.rect(MARGIN_X, MARGIN_Y, PAGE_W - MARGIN_X*2, PAGE_H - MARGIN_Y*2); };
 
     const drawHeader = () => {
         doc.setDrawColor(225, 225, 225);
@@ -719,66 +719,10 @@ async function gerarPDF() {
         img.src = dataUrl;
     });
 
-    // ── TABELA: DESCRICAO + VALOR apenas ────────────────────────────────────
-    const drawCompactTableCard = (x, y, w, title, color, items, totalLabel) => {
-        doc.setFont('helvetica', 'bold'); doc.setTextColor(30, 30, 30); doc.setFontSize(8.5);
-        doc.text(title, x, y);
-        const top = y + 3, tableHeight = 152;
-        doc.setDrawColor(color[0], color[1], color[2]);
-        doc.roundedRect(x, top, w, tableHeight, 1.5, 1.5);
-        const colDesc  = x;
-        const colValor = x + w * 0.68;
-        doc.setDrawColor(205, 205, 205);
-        doc.line(colValor, top, colValor, top + tableHeight);
-        doc.line(x, top + 6, x + w, top + 6);
-        doc.setFont('helvetica', 'bold'); doc.setTextColor(55, 55, 55); doc.setFontSize(6.8);
-        doc.text('DESCRICAO', colDesc + 1.6, top + 4.4);
-        doc.text('VALOR', colValor + 1.6, top + 4.4);
-        const maxRows = 40;
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(5.6);
-        let rowY = top + 9.6;
-        const rowH = 3.7;
-        items.slice(0, maxRows).forEach((item, idx) => {
-            if (idx > 0) { doc.setDrawColor(228, 228, 228); doc.line(x, rowY - 2.4, x + w, rowY - 2.4); }
-            const desc = doc.splitTextToSize(item.descricao || '-', w * 0.65)[0] || '-';
-            doc.setTextColor(50, 50, 50);
-            doc.text(desc, colDesc + 1.6, rowY);
-            doc.text(formatCurrency(item.valor || 0), colValor + 1.6, rowY);
-            rowY += rowH;
-            if (rowY > top + tableHeight - 1.5) return;
-        });
-        // Rodape colorido com total — dentro do card, sem sobrepor
-        const totalBoxY = top + tableHeight + 2;
-        doc.setFillColor(color[0], color[1], color[2]);
-        doc.roundedRect(x, totalBoxY, w, 9, 1.5, 1.5, 'F');
-        doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255); doc.setFontSize(9);
-        const total = items.reduce((acc, item) => acc + (Number(item.valor) || 0), 0);
-        doc.text(totalLabel, x + 3, totalBoxY + 6);
-        doc.text(formatCurrency(total), x + w - 3, totalBoxY + 6, { align: 'right' });
-        return { total, bottomY: totalBoxY + 9 };
-    };
-
-    // ── BLOCO TOTAL GERAL (separado, abaixo dos dois cards) ─────────────────
-    const drawTotalGeral = (x, y, w, totalPecas, totalServicos) => {
-        const total = totalPecas + totalServicos;
-        // linha divisoria
-        doc.setDrawColor(180, 180, 180); doc.setLineWidth(0.4);
-        doc.line(x, y + 1, x + w, y + 1);
-        doc.setLineWidth(0.2);
-        // caixa verde total geral
-        doc.setFillColor(22, 163, 74);
-        doc.roundedRect(x, y + 3, w, 11, 2, 2, 'F');
-        doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255); doc.setFontSize(11);
-        doc.text('TOTAL GERAL DO ORCAMENTO:', x + 4, y + 10.5);
-        doc.setFontSize(12);
-        doc.text(formatCurrency(total), x + w - 4, y + 10.5, { align: 'right' });
-        // info data emissao e validade
-        doc.setFont('helvetica', 'normal'); doc.setTextColor(80, 80, 80); doc.setFontSize(6);
-        doc.text('Emissao: ' + dataEmissao + ' ' + horaEmissao + '   |   Validade do orcamento: ' + dataValidade, x + w / 2, y + 17, { align: 'center' });
-    };
-
-    // ── TERMO DE APROVACAO DO CLIENTE ────────────────────────────────────────
-    const drawTermoAprovacao = (x, y, w, h) => {
+    // ── TERMO DE APROVACAO (altura fixa = 58mm) ──────────────────────────────
+    const TERMO_H = 58;
+    const drawTermoAprovacao = (x, y, w) => {
+        const h = TERMO_H;
         doc.setDrawColor(200, 200, 200); doc.setFillColor(252, 252, 252);
         doc.roundedRect(x, y, w, h, 2, 2, 'FD');
         // cabecalho cinza
@@ -787,7 +731,7 @@ async function gerarPDF() {
         doc.rect(x, y + 3.5, w, 3.5, 'F');
         doc.setFont('helvetica', 'bold'); doc.setTextColor(50, 50, 50); doc.setFontSize(7);
         doc.text('APROVACAO E CIENCIA DO CLIENTE', x + w / 2, y + 5.2, { align: 'center' });
-        // Texto do termo
+        // Texto do termo (5 linhas x 4mm = 20mm, comeca em y+10)
         doc.setFont('helvetica', 'normal'); doc.setTextColor(60, 60, 60); doc.setFontSize(6.2);
         const termoTexto = [
             'Declaro estar ciente e de acordo com os servicos e pecas relacionados neste orcamento,',
@@ -796,36 +740,146 @@ async function gerarPDF() {
             'Apos aprovacao, podem ocorrer complementos de orcamento durante a desmontagem ou no decorrer da execucao dos servicos,',
             'situacao em que o cliente sera previamente comunicado para nova autorizacao.'
         ];
-        let ty = y + 12;
-        termoTexto.forEach(linha => {
-            doc.text(linha, x + w / 2, ty, { align: 'center' });
-            ty += 4;
-        });
-        // Tres campos de assinatura lado a lado
+        let ty = y + 10;
+        termoTexto.forEach(linha => { doc.text(linha, x + w / 2, ty, { align: 'center' }); ty += 4; });
+        // Tres linhas de assinatura — abaixo do texto com margem de 4mm
+        // texto termina em y+10+(5*4)=y+30, linhas assinatura em y+36
+        const assinLinha = y + 36;
         const colW3 = (w - 10) / 3;
-        const assinY = y + h - 14;
         [0, 1, 2].forEach(i => {
             const cx = x + 4 + i * (colW3 + 1);
-            doc.setDrawColor(160, 160, 160); doc.setLineWidth(0.4);
-            doc.line(cx, assinY, cx + colW3, assinY);
+            doc.setDrawColor(150, 150, 150); doc.setLineWidth(0.4);
+            doc.line(cx, assinLinha, cx + colW3, assinLinha);
             doc.setLineWidth(0.2);
         });
+        // labels das assinaturas (6mm abaixo das linhas)
         doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 100, 100); doc.setFontSize(5.8);
         const labels3 = ['Aprovado por / Assinatura do Cliente', 'Responsavel Tecnico / Aprovador', 'Data e Hora da Aprovacao'];
         labels3.forEach((lbl, i) => {
             const cx = x + 4 + i * (colW3 + 1);
-            doc.text(lbl, cx + colW3 / 2, y + h - 7, { align: 'center' });
+            doc.text(lbl, cx + colW3 / 2, assinLinha + 5, { align: 'center' });
         });
-        // Frase pequena de ciencia
+        // frase italica final
         doc.setFont('helvetica', 'italic'); doc.setTextColor(130, 130, 130); doc.setFontSize(5.2);
-        doc.text('"Estou ciente dos termos acima e autorizo a execucao dos servicos."', x + w / 2, y + h - 2.5, { align: 'center' });
+        doc.text('"Estou ciente dos termos acima e autorizo a execucao dos servicos."', x + w / 2, y + h - 2, { align: 'center' });
+    };
+
+    // ── TABELA PAGINADA ──────────────────────────────────────────────────────
+    // Renderiza uma coluna de itens com paginacao automatica.
+    // Retorna o bottomY final (caixa total ja incluida).
+    const drawTabelaPaginada = (startX, startY, colW, title, colorRGB, items, totalLabel, pageSetup) => {
+        const ROW_H = 3.7;
+        const HEADER_H = 9.6;  // espaco ate primeira linha de dados
+        const TOTAL_BOX_H = 11; // total colorido
+        const colDesc  = startX;
+        const colValor = startX + colW * 0.68;
+
+        const drawTableHeader = (x, y, w) => {
+            doc.setDrawColor(colorRGB[0], colorRGB[1], colorRGB[2]);
+            doc.roundedRect(x, y, w, 6, 1.5, 1.5);
+            doc.setDrawColor(205, 205, 205);
+            doc.line(startX + w * 0.68, y, startX + w * 0.68, y + 6);
+            doc.line(x, y + 6, x + w, y + 6);
+            doc.setFont('helvetica', 'bold'); doc.setTextColor(55, 55, 55); doc.setFontSize(6.8);
+            doc.text('DESCRICAO', x + 1.6, y + 4.4);
+            doc.text('VALOR', startX + w * 0.68 + 1.6, y + 4.4);
+        };
+
+        let curY = startY;
+        let pageItems = [];
+        let isFirst = true;
+
+        // Desenha o titulo (so na primeira pagina desta coluna)
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(30, 30, 30); doc.setFontSize(8.5);
+        doc.text(title, startX, curY);
+        curY += 3;
+
+        for (let i = 0; i <= items.length; i++) {
+            const isLast = (i === items.length);
+            // calcula espaco restante na pagina atual
+            const spaceLeft = CONTENT_BOTTOM - curY;
+            // precisa de: header(6) + dados restantes + totalBox(11) + espaco
+            // simplificado: quando nao cabe mais 1 linha + totalBox, quebra pagina
+            const needsBreak = !isLast && (curY + ROW_H + TOTAL_BOX_H + 4 > CONTENT_BOTTOM);
+
+            if (needsBreak || isLast) {
+                // fecha tabela atual com os itens acumulados
+                const tableH = pageItems.length * ROW_H + HEADER_H;
+                const tableTop = curY - (pageItems.length * ROW_H) - HEADER_H;
+
+                // desenha borda da tabela
+                doc.setDrawColor(colorRGB[0], colorRGB[1], colorRGB[2]);
+                doc.roundedRect(startX, tableTop, colW, tableH, 1.5, 1.5);
+                doc.setDrawColor(205, 205, 205);
+                doc.line(startX + colW * 0.68, tableTop, startX + colW * 0.68, tableTop + tableH);
+
+                if (!isLast && needsBreak) {
+                    // Continua na proxima pagina — sem totalBox ainda
+                    pageSetup(); // addPage + header
+                    curY = CONTENT_TOP + 3;
+                    // titulo continuacao
+                    doc.setFont('helvetica', 'bold'); doc.setTextColor(100, 100, 100); doc.setFontSize(7);
+                    doc.text(title + ' (cont.)', startX, curY);
+                    curY += 3;
+                    drawTableHeader(startX, curY, colW);
+                    curY += HEADER_H;
+                    pageItems = [];
+                } else {
+                    // fim dos itens: desenha caixa total
+                    const totalBoxY = curY + 2;
+                    const total = items.reduce((acc, item) => acc + (Number(item.valor) || 0), 0);
+                    doc.setFillColor(colorRGB[0], colorRGB[1], colorRGB[2]);
+                    doc.roundedRect(startX, totalBoxY, colW, 9, 1.5, 1.5, 'F');
+                    doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255); doc.setFontSize(9);
+                    doc.text(totalLabel, startX + 3, totalBoxY + 6);
+                    doc.text(formatCurrency(total), startX + colW - 3, totalBoxY + 6, { align: 'right' });
+                    return { total, bottomY: totalBoxY + 9 };
+                }
+            }
+
+            if (!isLast) {
+                if (pageItems.length === 0) {
+                    drawTableHeader(startX, curY, colW);
+                    curY += HEADER_H;
+                }
+                // linha separadora
+                if (pageItems.length > 0) {
+                    doc.setDrawColor(228, 228, 228);
+                    doc.line(startX, curY - 2.4, startX + colW, curY - 2.4);
+                }
+                const desc = doc.splitTextToSize(items[i].descricao || '-', colW * 0.65)[0] || '-';
+                doc.setFont('helvetica', 'normal'); doc.setFontSize(5.6); doc.setTextColor(50, 50, 50);
+                doc.text(desc, startX + 1.6, curY);
+                doc.text(formatCurrency(items[i].valor || 0), startX + colW * 0.68 + 1.6, curY);
+                curY += ROW_H;
+                pageItems.push(items[i]);
+            }
+        }
+        // fallback (lista vazia)
+        return { total: 0, bottomY: curY };
+    };
+
+    // ── TOTAL GERAL ──────────────────────────────────────────────────────────
+    const drawTotalGeral = (x, y, w, totalPecas, totalServicos) => {
+        const total = totalPecas + totalServicos;
+        doc.setDrawColor(180, 180, 180); doc.setLineWidth(0.4);
+        doc.line(x, y + 1, x + w, y + 1);
+        doc.setLineWidth(0.2);
+        doc.setFillColor(22, 163, 74);
+        doc.roundedRect(x, y + 3, w, 11, 2, 2, 'F');
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255); doc.setFontSize(11);
+        doc.text('TOTAL GERAL DO ORCAMENTO:', x + 4, y + 10.5);
+        doc.setFontSize(12);
+        doc.text(formatCurrency(total), x + w - 4, y + 10.5, { align: 'right' });
+        doc.setFont('helvetica', 'normal'); doc.setTextColor(80, 80, 80); doc.setFontSize(6);
+        doc.text('Emissao: ' + dataEmissao + ' ' + horaEmissao + '   |   Validade do orcamento: ' + dataValidade, x + w / 2, y + 17, { align: 'center' });
+        return y + 20; // bottomY
     };
 
     showToast('Gerando PDF...');
 
     // ── PAGINA 1 ─────────────────────────────────────────────────────────────
     drawBasePage(); drawHeader();
-
     drawSectionBox(22, 44, 82, 20, 'CLIENTE', [
         'NOME: ' + cliente,
         'CPF/CNPJ: ' + cpf + '  |  TEL: ' + (telefoneCliente || 'Nao informado')
@@ -835,7 +889,6 @@ async function gerarPDF() {
         'KM: ' + hodometro + '  |  ' + (combustivelTipos.join('/') || 'Combustivel') + ' (' + combustivelNivel + '%)',
         'CHASSI: ' + chassis
     ]);
-
     drawSectionBox(22, 67, 166, 13, 'SERVICOS SOLICITADOS', servicos.length ? servicos.map(s => s.descricao) : ['-']);
     drawInspectionChecks(22, 83, 166, 30, itensEntrada);
     drawSectionBox(22, 116, 166, 16, 'OBSERVACOES DA INSPECAO', [
@@ -844,7 +897,6 @@ async function gerarPDF() {
         'Vidros: ' + inspecaoVisual.vidros,
         'Interior: ' + inspecaoVisual.interior
     ]);
-
     const fotosComprimidas = [];
     for (const foto of fotos) fotosComprimidas.push({ nome: foto.nome, url: await compressPhoto(foto.url) });
     const fotoBoxY = 135, fotoBoxH = 100;
@@ -863,27 +915,59 @@ async function gerarPDF() {
             doc.addImage(foto.url, 'JPEG', fx + 0.5, fy + 0.5, fotoLarguraBaixo - 1, fotoAlturaBaixo - 1, undefined, 'FAST');
         });
     }
-
     drawFooterComAssinaturas();
 
-    // ── PAGINA 2: PECAS + SERVICOS + TOTAIS + TERMO ──────────────────────────
-    doc.addPage();
-    drawBasePage(); drawHeader();
+    // ── PAGINAS DE PECAS E SERVICOS (com paginacao automatica) ───────────────
+    // As duas tabelas sao desenhadas sequencialmente em paginas proprias.
+    // Cada uma gerencia suas proprias quebras de pagina.
 
-    const colW = 82;
-    // tabelas lado a lado (altura reduzida para caber totais + termo abaixo)
-    const cardPecas    = drawCompactTableCard(22,  47, colW, 'PECAS',    [20, 105, 200], pecas,    'TOTAL PECAS');
-    const cardServicos = drawCompactTableCard(107, 47, colW, 'SERVICOS', [220, 40,  40],  servicos, 'TOTAL SERVICOS');
+    let currentPageForTables = 0; // controla qual pagina de tabelas estamos
 
-    // Total geral — posicionado logo abaixo do bottomY maior dos dois cards
-    const abaixoCards = Math.max(cardPecas.bottomY, cardServicos.bottomY) + 2;
-    drawTotalGeral(22, abaixoCards, 166, cardPecas.total, cardServicos.total);
+    const novaPlgTabelas = () => {
+        doc.addPage();
+        drawBasePage();
+        drawHeader();
+        currentPageForTables++;
+    };
 
-    // Termo de aprovacao — logo abaixo do total geral
-    const termoY = abaixoCards + 22;
-    const termoH = 270 - termoY;
-    drawTermoAprovacao(22, termoY, 166, termoH);
+    // ----- PECAS -----
+    novaPlgTabelas();
+    const cardPecas = drawTabelaPaginada(
+        CONTENT_X, CONTENT_TOP, CONTENT_W, 'PECAS', [20, 105, 200],
+        pecas, 'TOTAL PECAS',
+        () => { drawFooterSimples(); novaPlgTabelas(); }
+    );
+    drawFooterSimples();
 
+    // ----- SERVICOS -----
+    novaPlgTabelas();
+    const cardServicos = drawTabelaPaginada(
+        CONTENT_X, CONTENT_TOP, CONTENT_W, 'SERVICOS', [220, 40, 40],
+        servicos, 'TOTAL SERVICOS',
+        () => { drawFooterSimples(); novaPlgTabelas(); }
+    );
+
+    // ----- TOTAL GERAL + TERMO (na mesma pagina dos servicos se couber) -----
+    let cursorY = Math.max(cardPecas.bottomY, cardServicos.bottomY) + 2;
+
+    // verifica se total geral + termo cabem na pagina atual
+    const espacoNecessario = 20 + TERMO_H + 4; // totalGeral(20) + termo(58) + margem
+    if (cursorY + espacoNecessario > CONTENT_BOTTOM) {
+        drawFooterSimples();
+        novaPlgTabelas();
+        cursorY = CONTENT_TOP;
+    }
+
+    const totalGeralBottomY = drawTotalGeral(CONTENT_X, cursorY, CONTENT_W, cardPecas.total, cardServicos.total);
+
+    // verifica se termo cabe apos total geral
+    let termoY = totalGeralBottomY + 3;
+    if (termoY + TERMO_H > CONTENT_BOTTOM) {
+        drawFooterSimples();
+        novaPlgTabelas();
+        termoY = CONTENT_TOP;
+    }
+    drawTermoAprovacao(CONTENT_X, termoY, CONTENT_W);
     drawFooterSimples();
 
     // ── SALVAR ───────────────────────────────────────────────────────────────
