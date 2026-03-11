@@ -324,8 +324,16 @@ function isCurrentMonth(dateString) {
 // ============================================
 // START
 // ============================================
+window.AppState = AppState;
+window.formatMoney = formatMoney;
+window.formatDate = formatDate;
+window.isToday = isToday;
+window.isCurrentMonth = isCurrentMonth;
+window.saveToLocalStorage = saveToLocalStorage;
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initApp);
 } else {
     initApp();
 }
+
