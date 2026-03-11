@@ -47,12 +47,13 @@ function aplicarWhiteLabel() {
     document.documentElement.style.setProperty('--primary-color', cor);
     document.documentElement.style.setProperty('--primary-hover', calcularHoverColor(cor));
 
-    var nomeExibicao = AppState.oficina.nomeExibicao || AppState.oficina.nome || 'Perplexity';
-    document.title = nomeExibicao + ' - Sistema de Gestao Automotiva';
+    var nomeExibicao = AppState.oficina.nome || 'Sistema de Gestao';
+    document.title = nomeExibicao;
 
     updateOficinaNome();
 
-    var logoSrc = AppState.oficina.logo || 'https://via.placeholder.com/40';
+    var logoAtual = (AppState.oficina.logo || '').trim();
+    var logoSrc = (!logoAtual || logoAtual.indexOf('via.placeholder.com') !== -1) ? 'logo-default.png' : logoAtual;
     document.querySelectorAll('.navbar-logo, .sidebar-logo-img').forEach(function(img) {
         img.src = logoSrc;
     });
@@ -81,7 +82,8 @@ function loadConfiguracoes() {
 
     var preview = document.getElementById('cfgLogoPreview');
     if (preview) {
-        preview.src = oficina.logo || 'https://via.placeholder.com/80x80?text=Logo';
+        var logoAtual = (oficina.logo || '').trim();
+        preview.src = (!logoAtual || logoAtual.indexOf('via.placeholder.com') !== -1) ? 'logo-default.png' : logoAtual;
     }
 }
 
@@ -110,7 +112,7 @@ function salvarConfiguracoes(event) {
     document.documentElement.style.setProperty('--primary-color', corPrimaria);
     document.documentElement.style.setProperty('--primary-hover', calcularHoverColor(corPrimaria));
 
-    document.title = (AppState.oficina.nomeExibicao || AppState.oficina.nome || 'Perplexity') + ' - Sistema de Gestao Automotiva';
+    document.title = AppState.oficina.nome || 'Sistema de Gestao';
     updateOficinaNome();
 
     localStorage.setItem('perplexity_oficina', JSON.stringify(AppState.oficina));

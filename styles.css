@@ -1,6 +1,8 @@
 :root {
     --primary-color: #27ae60;
     --primary-hover: #219a52;
+    --sidebar-bg: #1a1a2e;
+    --sidebar-text: #ffffff;
     --secondary-color: var(--primary-hover, #219a52);
     --success-color: #28a745;
     --danger-color: #dc3545;
@@ -39,8 +41,8 @@ body {
     left: 0;
     width: var(--sidebar-width);
     height: 100vh;
-    background: linear-gradient(180deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-    color: var(--white);
+    background: var(--sidebar-bg);
+    color: var(--sidebar-text);
     transition: var(--transition);
     z-index: 1000;
     overflow-y: auto;
