@@ -136,6 +136,7 @@ function checkAuth() {
     }
 }
 
+
 function updateUserInfo() {
     if (AppState.user) {
         const userNameEl = document.querySelector('.user-name');
@@ -330,6 +331,12 @@ window.formatDate = formatDate;
 window.isToday = isToday;
 window.isCurrentMonth = isCurrentMonth;
 window.saveToLocalStorage = saveToLocalStorage;
+window.navigateTo = navigateTo;
+window.toggleSidebar = toggleSidebar;
+window.logout = logout;
+window.getStatusBadge = getStatusBadge;
+window.updateDashboard = updateDashboard;
+window.renderRecentOS = renderRecentOS;
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initApp);
