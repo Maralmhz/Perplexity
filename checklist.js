@@ -243,7 +243,6 @@ function criarLinhaPeca(peca = null) {
     return tr;
 }
 
-// SEM confirm() — remove diretamente ao clicar no lixo
 function removerLinhaServico(btn) {
     btn.closest('tr').remove();
     atualizarResumoFinanceiro();
@@ -516,7 +515,6 @@ function preencherChecklistDemoCompleto(gerarPdfAoFinal = true) {
     if (gerarPdfAoFinal) gerarPDF();
 }
 
-// ── ICONE WHATSAPP OFICIAL: SVG convertido em PNG via canvas ────────────────
 function getWhatsAppIconDataURL(size = 32) {
     const canvas = document.createElement('canvas');
     canvas.width = size; canvas.height = size;
@@ -546,13 +544,10 @@ function getWhatsAppIconDataURL(size = 32) {
     return canvas.toDataURL('image/png');
 }
 
-// ── BAIXAR PDF E ABRIR WHATSAPP AUTOMATICAMENTE ─────────────────────────────
-// Normaliza o numero: remove tudo que nao for digito e garante DDI 55
 function normalizarTelefoneWhatsApp(telefone) {
     if (!telefone) return null;
     let num = telefone.replace(/\D/g, '');
     if (!num || num.length < 8) return null;
-    // Se nao comecar com 55 (Brasil) e tiver 10-11 digitos, adiciona DDI
     if (!num.startsWith('55') && (num.length === 10 || num.length === 11)) {
         num = '55' + num;
     }
@@ -564,12 +559,9 @@ function abrirWhatsAppComPDF(nomeArquivo, telefone, osNum) {
         `Ola! Segue o PDF da Ordem de Servico *${osNum}* da Fast Car Centro Automotivo.\nArquivo baixado: *${nomeArquivo}*\nQualquer duvida, estamos a disposicao!`
     );
     const numLimpo = normalizarTelefoneWhatsApp(telefone);
-    // Se tem numero valido: abre conversa direta com o cliente
-    // Caso contrario: abre o WhatsApp para a propria oficina escolher para quem enviar
     const url = numLimpo
         ? `https://wa.me/${numLimpo}?text=${mensagem}`
         : `https://wa.me/?text=${mensagem}`;
-    // Abre em nova aba sem popup de confirmacao
     window.open(url, '_blank', 'noopener,noreferrer');
 }
 
@@ -623,6 +615,8 @@ async function gerarPDF() {
     const servicos = coletarServicos();
     const pecas = coletarPecas();
     const fotos = (ChecklistState.checklistAtual?.fotos || []).slice(0, 9);
+
+    // Assinaturas: apenas para página 1 (checklist)
     const assinaturaCliente = document.getElementById('canvasAssinaturaCliente')?.toDataURL('image/png');
     const assinaturaTecnico = document.getElementById('canvasAssinaturaTecnico')?.toDataURL('image/png');
 
@@ -659,19 +653,27 @@ async function gerarPDF() {
         doc.line(22, 40.5, 188, 40.5); doc.setLineWidth(0.2);
     };
 
-    const drawFooter = () => {
-        doc.setDrawColor(190, 190, 190); doc.line(22, 255, 188, 255);
+    // Rodapé simples sem assinaturas (usado na pág 2)
+    const drawFooterSimples = () => {
+        doc.setDrawColor(190, 190, 190); doc.line(22, 270, 188, 270);
         doc.setFont('helvetica', 'normal'); doc.setTextColor(140, 140, 140); doc.setFontSize(5.6);
-        doc.text('ASSINATURA DO CLIENTE', 55, 260, { align: 'center' });
-        doc.text('ASSINATURA DO TECNICO', 155, 260, { align: 'center' });
-        doc.text('CHECKLIST GERADO POR ' + oficina.nome + ' CNPJ: ' + oficina.cnpj + ' - ' + dataEmissao + ', ' + horaEmissao, 105, 269, { align: 'center' });
+        doc.text('CHECKLIST GERADO POR ' + oficina.nome + ' CNPJ: ' + oficina.cnpj + ' - ' + dataEmissao + ', ' + horaEmissao, 105, 275, { align: 'center' });
     };
 
-    const drawSignatures = () => {
+    // Rodapé com assinaturas do cliente e técnico (apenas pág 1)
+    const drawFooterComAssinaturas = () => {
+        doc.setDrawColor(190, 190, 190); doc.line(22, 248, 188, 248);
+        // Linha assinatura cliente
         doc.setDrawColor(160, 160, 160);
-        doc.line(22, 255, 95, 255); doc.line(115, 255, 188, 255);
-        if (assinaturaCliente) doc.addImage(assinaturaCliente, 'PNG', 27, 242, 62, 11, undefined, 'FAST');
-        if (assinaturaTecnico) doc.addImage(assinaturaTecnico, 'PNG', 120, 242, 62, 11, undefined, 'FAST');
+        doc.line(22, 260, 95, 260);
+        // Linha assinatura técnico
+        doc.line(115, 260, 188, 260);
+        if (assinaturaCliente) doc.addImage(assinaturaCliente, 'PNG', 27, 248, 62, 11, undefined, 'FAST');
+        if (assinaturaTecnico) doc.addImage(assinaturaTecnico, 'PNG', 120, 248, 62, 11, undefined, 'FAST');
+        doc.setFont('helvetica', 'normal'); doc.setTextColor(140, 140, 140); doc.setFontSize(5.6);
+        doc.text('ASSINATURA DO CLIENTE', 55, 264, { align: 'center' });
+        doc.text('ASSINATURA DO TECNICO', 155, 264, { align: 'center' });
+        doc.text('CHECKLIST GERADO POR ' + oficina.nome + ' CNPJ: ' + oficina.cnpj + ' - ' + dataEmissao + ', ' + horaEmissao, 105, 275, { align: 'center' });
     };
 
     const drawSectionBox = (x, y, w, h, title, lines = []) => {
@@ -728,6 +730,7 @@ async function gerarPDF() {
         img.src = dataUrl;
     });
 
+    // Tabela de peças ou serviços — sem lista de reguladores ao lado
     const drawCompactTableCard = (x, y, w, title, color, items, totalLabel) => {
         doc.setFont('helvetica', 'bold'); doc.setTextColor(30, 30, 30); doc.setFontSize(8.5);
         doc.text(title, x, y);
@@ -735,8 +738,8 @@ async function gerarPDF() {
         doc.setDrawColor(color[0], color[1], color[2]);
         doc.roundedRect(x, top, w, tableHeight, 1.5, 1.5);
         const colDesc  = x;
-        const colValor = x + w * 0.58;
-        const colReg   = x + w * 0.84;
+        const colValor = x + w * 0.60;
+        const colReg   = x + w * 0.82;
         doc.setDrawColor(205, 205, 205);
         doc.line(colValor, top, colValor, top + tableHeight);
         doc.line(colReg, top, colReg, top + tableHeight);
@@ -751,21 +754,21 @@ async function gerarPDF() {
         const rowH = 3.7;
         items.slice(0, maxRows).forEach((item, idx) => {
             if (idx > 0) { doc.setDrawColor(228, 228, 228); doc.line(x, rowY - 2.4, x + w, rowY - 2.4); }
-            const desc = doc.splitTextToSize(item.descricao || '-', w * 0.56)[0] || '-';
+            const desc = doc.splitTextToSize(item.descricao || '-', w * 0.58)[0] || '-';
             doc.setTextColor(50, 50, 50);
             doc.text(desc, colDesc + 1.6, rowY);
             doc.text(formatCurrency(item.valor || 0), colValor + 1.6, rowY);
             if (item.regulado) {
                 doc.setFillColor(25, 135, 84);
-                doc.roundedRect(colReg + 1.2, rowY - 2.6, 11, 3.5, 0.8, 0.8, 'F');
+                doc.roundedRect(colReg + 1.2, rowY - 2.6, 13, 3.5, 0.8, 0.8, 'F');
                 doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold');
-                doc.text('SIM', colReg + 3.2, rowY);
+                doc.text('SIM', colReg + 3.5, rowY);
                 doc.setFont('helvetica', 'normal');
             } else {
                 doc.setFillColor(220, 60, 60);
-                doc.roundedRect(colReg + 1.2, rowY - 2.6, 11, 3.5, 0.8, 0.8, 'F');
+                doc.roundedRect(colReg + 1.2, rowY - 2.6, 13, 3.5, 0.8, 0.8, 'F');
                 doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold');
-                doc.text('NAO', colReg + 2.8, rowY);
+                doc.text('NAO', colReg + 3.0, rowY);
                 doc.setFont('helvetica', 'normal');
             }
             rowY += rowH;
@@ -785,58 +788,102 @@ async function gerarPDF() {
         return { total };
     };
 
-    const drawRegulacaoBox = (x, y, w, h) => {
+    // Área amarela de regulação - melhorada, espaçosa e profissional
+    const drawRegulacaoBoxMelhorada = (x, y, w, h) => {
+        const corBorda = [200, 165, 0];
+        const corHeader = [255, 200, 0];
+        // Fundo amarelo suave
+        doc.setFillColor(255, 248, 210);
+        doc.setDrawColor(corBorda[0], corBorda[1], corBorda[2]);
+        doc.setLineWidth(0.5);
+        doc.roundedRect(x, y, w, h, 2, 2, 'FD');
+        // Header amarelo escuro
+        doc.setFillColor(corHeader[0], corHeader[1], corHeader[2]);
+        doc.roundedRect(x, y, w, 8, 2, 2, 'F');
+        doc.rect(x, y + 4, w, 4, 'F');
+        // Título
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(80, 60, 0); doc.setFontSize(7.5);
+        doc.text('REGULACAO / RESPONSAVEL PELO PAGAMENTO', x + w / 2, y + 5.5, { align: 'center' });
+        // Linha separadora
+        doc.setDrawColor(200, 165, 0); doc.setLineWidth(0.3);
+        doc.line(x + 3, y + 8.5, x + w - 3, y + 8.5);
+        doc.setLineWidth(0.2);
+        // Duas colunas bem distribuídas
+        const col1X = x + 4;
+        const col2X = x + w / 2 + 4;
+        const labelColor = [100, 75, 0];
+        const valueColor = [40, 40, 40];
+        // COLUNA 1
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(labelColor[0], labelColor[1], labelColor[2]);
+        doc.text('SEGURADORA:', col1X, y + 13.5);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(valueColor[0], valueColor[1], valueColor[2]);
+        doc.text(seguradora || 'Nao informada', col1X, y + 17.5);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(labelColor[0], labelColor[1], labelColor[2]);
+        doc.text('REGULADOR:', col1X, y + 22);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(valueColor[0], valueColor[1], valueColor[2]);
+        doc.text(regulador || 'Nao informado', col1X, y + 26);
+        // COLUNA 2
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(labelColor[0], labelColor[1], labelColor[2]);
+        doc.text('DATA DA REGULACAO:', col2X, y + 13.5);
+        const dataFormatada = dataRegulacao ? new Date(dataRegulacao + 'T12:00:00').toLocaleDateString('pt-BR') : '-';
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(valueColor[0], valueColor[1], valueColor[2]);
+        doc.text(dataFormatada, col2X, y + 17.5);
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(6); doc.setTextColor(labelColor[0], labelColor[1], valueColor[2]);
+        doc.text('TIPO / STATUS:', col2X, y + 22);
+        // Badge de tipo
         const corTipo = statusRegulacao === 'total' ? [25, 135, 84]
-            : statusRegulacao === 'parcial' ? [255, 165, 0]
+            : statusRegulacao === 'parcial' ? [200, 130, 0]
             : statusRegulacao === 'associacao' ? [13, 110, 253]
-            : [220, 53, 69];
-        doc.setDrawColor(corTipo[0], corTipo[1], corTipo[2]);
-        doc.setFillColor(250, 250, 250);
-        doc.roundedRect(x, y, w, h, 1.5, 1.5, 'FD');
+            : [180, 40, 40];
+        const tipoW = doc.getTextWidth(tipoPagador) + 6;
         doc.setFillColor(corTipo[0], corTipo[1], corTipo[2]);
-        doc.roundedRect(x, y, w, 7, 1.5, 1.5, 'F');
-        doc.rect(x, y + 3.5, w, 3.5, 'F');
-        doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255); doc.setFontSize(6.5);
-        doc.text('REGULACAO / RESPONSAVEL PELO PAGAMENTO', x + 2, y + 5);
-        doc.setDrawColor(235, 235, 235); doc.line(x + 1.5, y + 7, x + w - 1.5, y + 7);
-        doc.setFont('helvetica', 'bold'); doc.setTextColor(corTipo[0], corTipo[1], corTipo[2]); doc.setFontSize(8);
-        doc.text('TIPO: ', x + 2, y + 12);
-        const tipoLargura = doc.getTextWidth(tipoPagador) + 4;
-        doc.setFillColor(corTipo[0], corTipo[1], corTipo[2]);
-        doc.roundedRect(x + 13, y + 8.5, tipoLargura, 5, 1, 1, 'F');
-        doc.setTextColor(255, 255, 255); doc.setFontSize(7);
-        doc.text(tipoPagador, x + 15, y + 12.2);
-        doc.setFont('helvetica', 'normal'); doc.setTextColor(60, 60, 60); doc.setFontSize(6.5);
-        const col2 = x + w / 2;
-        doc.text('SEGURADORA: ' + (seguradora || 'Nao informada'), x + 2, y + 18);
-        doc.text('REGULADOR: ' + (regulador || 'Nao informado'), col2, y + 18);
-        doc.text('DATA REGULACAO: ' + (dataRegulacao ? new Date(dataRegulacao + 'T12:00:00').toLocaleDateString('pt-BR') : '-'), x + 2, y + 22.5);
-        doc.text('STATUS: ' + (statusRegulacao || 'pendente').toUpperCase(), col2, y + 22.5);
+        doc.roundedRect(col2X, y + 23, tipoW, 5.5, 1, 1, 'F');
+        doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5);
+        doc.text(tipoPagador, col2X + tipoW / 2, y + 27, { align: 'center' });
+        // Linha de assinatura
+        doc.setDrawColor(180, 150, 0); doc.setLineWidth(0.3);
+        doc.line(x + 4, y + h - 7, x + w / 2 - 4, y + h - 7);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(5.5); doc.setTextColor(120, 100, 0);
+        doc.text('Assinatura do Regulador', x + w / 4, y + h - 3.5, { align: 'center' });
+        // Segunda linha de assinatura
+        doc.line(x + w / 2 + 4, y + h - 7, x + w - 4, y + h - 7);
+        doc.text('Assinatura Responsavel', x + w * 0.75, y + h - 3.5, { align: 'center' });
     };
 
     showToast('Gerando PDF...');
 
-    // ── PAGINA 1 ────────────────────────────────────────────────────────────
+    // ── PAGINA 1: CHECKLIST + FOTOS + ASSINATURA DO CLIENTE ────────────────
     drawBasePage(); drawHeader();
-    // CLIENTE E VEICULO em tamanho REDUZIDO e PROPORCIONAL
-    drawSectionBox(22, 44, 82, 24, 'CLIENTE', [
-        'NOME: ' + cliente, 'CPF/CNPJ: ' + cpf, 'TEL: ' + (telefoneCliente || 'Nao informado')
+
+    // Caixa cliente/veículo compacta (menor altura, proporcional ao conteúdo)
+    drawSectionBox(22, 44, 82, 20, 'CLIENTE', [
+        'NOME: ' + cliente,
+        'CPF/CNPJ: ' + cpf + '  |  TEL: ' + (telefoneCliente || 'Nao informado')
     ]);
-    drawSectionBox(107, 44, 81, 24, 'VEICULO', [
-        'VEICULO: ' + modelo + '  ' + placa, 'CHASSI: ' + chassis,
-        'KM: ' + hodometro + ' | COMBUSTIVEL: ' + (combustivelTipos.join('/') || 'SELECIONE...') + ' (' + combustivelNivel + '%)'
+    drawSectionBox(107, 44, 81, 20, 'VEICULO', [
+        modelo + '  ' + placa,
+        'KM: ' + hodometro + '  |  ' + (combustivelTipos.join('/') || 'Combustivel') + ' (' + combustivelNivel + '%)',
+        'CHASSI: ' + chassis
     ]);
-    drawSectionBox(22, 71, 166, 13, 'SERVICOS SOLICITADOS', servicos.length ? servicos.map(s => s.descricao) : ['-']);
-    drawInspectionChecks(22, 87, 166, 30, itensEntrada);
-    drawSectionBox(22, 120, 166, 16, 'OBSERVACOES DA INSPECAO', [
+
+    // Serviços solicitados
+    drawSectionBox(22, 67, 166, 13, 'SERVICOS SOLICITADOS', servicos.length ? servicos.map(s => s.descricao) : ['-']);
+
+    // Inspeção de entrada
+    drawInspectionChecks(22, 83, 166, 30, itensEntrada);
+
+    // Observações
+    drawSectionBox(22, 116, 166, 16, 'OBSERVACOES DA INSPECAO', [
         'Lataria: ' + inspecaoVisual.lataria,
         'Pneus: ' + inspecaoVisual.pneus,
         'Vidros: ' + inspecaoVisual.vidros,
         'Interior: ' + inspecaoVisual.interior
     ]);
+
+    // Fotos
     const fotosComprimidas = [];
     for (const foto of fotos) fotosComprimidas.push({ nome: foto.nome, url: await compressPhoto(foto.url) });
-    const fotoBoxY = 139, fotoBoxH = 102;
+    const fotoBoxY = 135, fotoBoxH = 100;
     drawSectionBox(22, fotoBoxY, 166, fotoBoxH, 'FOTOS DO VEICULO', []);
     if (fotosComprimidas.length > 0) {
         const fotoLarguraCima = 51, fotoAlturaCima = 36;
@@ -852,60 +899,37 @@ async function gerarPDF() {
             doc.addImage(foto.url, 'JPEG', fx + 0.5, fy + 0.5, fotoLarguraBaixo - 1, fotoAlturaBaixo - 1, undefined, 'FAST');
         });
     }
-    drawSignatures(); drawFooter();
 
-    // ── PAGINA 2 ─────────────────────────────────────────────────────────────
+    // Assinatura do cliente SOMENTE na página 1
+    drawFooterComAssinaturas();
+
+    // ── PAGINA 2: PECAS E SERVICOS — SEM ASSINATURA DO CLIENTE ──────────────
     doc.addPage();
     drawBasePage(); drawHeader();
-    // PECAS E SERVICOS com COLUNAS PADRONIZADAS
-    const cardPecas = drawCompactTableCard(22, 47, 82, 'PECAS', [20, 105, 200], pecas, 'TOTAL PECAS');
-    const cardServicos = drawCompactTableCard(107, 47, 81, 'SERVICOS', [220, 40, 40], servicos, 'TOTAL SERVICOS');
+
+    // Duas colunas idênticas (mesma largura e altura)
+    const colW = 82;
+    const cardPecas = drawCompactTableCard(22, 47, colW, 'PECAS', [20, 105, 200], pecas, 'TOTAL PECAS');
+    const cardServicos = drawCompactTableCard(107, 47, colW, 'SERVICOS', [220, 40, 40], servicos, 'TOTAL SERVICOS');
+
+    // Total geral
     const totalGeral = cardPecas.total + cardServicos.total;
     doc.setFillColor(240, 240, 240);
-    doc.roundedRect(22, 222, 166, 12, 1.5, 1.5, 'F');
+    doc.roundedRect(22, 218, 166, 12, 1.5, 1.5, 'F');
     doc.setFont('helvetica', 'bold'); doc.setTextColor(55, 55, 55); doc.setFontSize(11);
-    doc.text('TOTAL GERAL:', 104, 230, { align: 'center' });
+    doc.text('TOTAL GERAL:', 104, 226, { align: 'center' });
     doc.setTextColor(28, 170, 90);
-    doc.text(formatCurrency(totalGeral), 182, 230, { align: 'right' });
-    // CAIXA AMARELA DE REGULACAO - MELHORADA E MAIS PROFISSIONAL
-    const drawRegulacaoBoxMelhorada = (x, y, w, h) => {
-        const corBG = [255, 235, 147]; // Amarelo suave
-        doc.setFillColor(corBG[0], corBG[1], corBG[2]);
-        doc.setDrawColor(200, 180, 0);
-        doc.roundedRect(x, y, w, h, 1.5, 1.5, 'FD');
-        doc.setFont('helvetica', 'bold'); doc.setTextColor(100, 80, 0); doc.setFontSize(7.5);
-        doc.text('ASSINATURA DA REGULACAO / RESPONSAVEL', x + 2, y + 4.5);
-        doc.setDrawColor(200, 180, 0); doc.setLineWidth(0.3);
-        doc.line(x + 1.5, y + 5.8, x + w - 1.5, y + 5.8);
-        // COLUNA 1: INFO REGULACAO
-        const col1W = w * 0.5;
-        doc.setFont('helvetica', 'normal'); doc.setTextColor(80, 80, 80); doc.setFontSize(6.3);
-        doc.text('SEGURADORA:', x + 2, y + 9);
-        doc.text(seguradora || 'Nao informada', x + 2, y + 12);
-        doc.text('REGULADOR:', x + 2, y + 15.5);
-        doc.text(regulador || 'Nao informado', x + 2, y + 18.5);
-        // COLUNA 2: DATA E STATUS
-        const col2X = x + col1W + 2;
-        doc.text('DATA:', col2X, y + 9);
-        const dataFormatada = dataRegulacao ? new Date(dataRegulacao + 'T12:00:00').toLocaleDateString('pt-BR') : '-';
-        doc.text(dataFormatada, col2X, y + 12);
-        doc.text('STATUS:', col2X, y + 15.5);
-        doc.text((statusRegulacao || 'pendente').toUpperCase(), col2X, y + 18.5);
-        // ASSINATURA
-        doc.setDrawColor(160, 160, 160);
-        doc.line(x + 2, y + 22, col2X - 2, y + 22);
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(5.5); doc.setTextColor(120, 120, 120);
-        doc.text('Assinatura', x + col1W / 2, y + 24, { align: 'center' });
-    };
-    drawRegulacaoBoxMelhorada(22, 237, 166, 27);
-    drawFooter();
+    doc.text(formatCurrency(totalGeral), 182, 226, { align: 'right' });
 
-    // ── BAIXAR PDF AUTOMATICAMENTE (sem popup) ───────────────────────────────
+    // Área amarela de regulação melhorada (sem assinatura do cliente)
+    drawRegulacaoBoxMelhorada(22, 233, 166, 38);
+
+    // Rodapé simples (sem assinatura do cliente)
+    drawFooterSimples();
+
+    // ── BAIXAR PDF ───────────────────────────────────────────────────────────
     doc.save(nomeArquivo);
     showToast('PDF baixado! Abrindo WhatsApp...', 'success');
-
-    // ── ABRIR WHATSAPP AUTOMATICAMENTE APOS BREVE DELAY ─────────────────────
-    // O delay de 800ms garante que o download ja foi iniciado antes de mudar de contexto
     setTimeout(() => {
         abrirWhatsAppComPDF(nomeArquivo, telefoneCliente, osNum);
     }, 800);
