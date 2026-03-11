@@ -1,11 +1,14 @@
 // ============================================
-// SUPABASE CONFIG
+// SUPABASE CONFIG — instancia unica global
 // ============================================
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
 const SUPABASE_URL = 'https://hefpzigrxyyhvtgkyspr.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_Af0DdLvEB9NuDE69aIPr_w_3a55KPLk'
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
+
+// Expoe como global para os outros modulos reutilizarem
+window._supabase = supabase;
 
 // ============================================
 // ESTADO GLOBAL
@@ -38,55 +41,94 @@ const AppState = {
 };
 
 // ============================================
-// CARREGAR DADOS DO SUPABASE
+// CARREGAR TODOS OS DADOS DO SUPABASE
 // ============================================
 async function loadFromSupabase() {
     try {
         // Clientes
-        const { data: clientes, error: errClientes } = await supabase
-            .from('clientes').select('*').order('nome')
-        if (errClientes) throw errClientes
-        AppState.data.clientes = clientes || []
+        const { data: clientes, error: errClientes } = await supabase.from('clientes').select('*').order('nome');
+        if (errClientes) throw errClientes;
+        AppState.data.clientes = clientes || [];
 
         // Veiculos
-        const { data: veiculos, error: errVeiculos } = await supabase
-            .from('veiculos').select('*').order('modelo')
-        if (errVeiculos) throw errVeiculos
-        AppState.data.veiculos = veiculos || []
+        const { data: veiculos, error: errVeiculos } = await supabase.from('veiculos').select('*').order('modelo');
+        if (errVeiculos) throw errVeiculos;
+        AppState.data.veiculos = (veiculos || []).map(v => ({ ...v, clienteId: v.cliente_id }));
 
         // Ordens de Servico com servicos
         const { data: ordensServico, error: errOS } = await supabase
-            .from('ordens_servico')
-            .select('*, os_servicos(*)')
-            .order('created_at', { ascending: false })
-        if (errOS) throw errOS
-
+            .from('ordens_servico').select('*, os_servicos(*)').order('created_at', { ascending: false });
+        if (errOS) throw errOS;
         AppState.data.ordensServico = (ordensServico || []).map(os => ({
             ...os,
             clienteId: os.cliente_id,
             veiculoId: os.veiculo_id,
             valorTotal: os.valor_total,
             dataConclusao: os.data_conclusao,
-            servicos: (os.os_servicos || []).map(s => ({
-                id: s.id,
-                descricao: s.descricao,
-                valor: s.valor
-            }))
-        }))
+            servicos: (os.os_servicos || []).map(s => ({ id: s.id, descricao: s.descricao, valor: s.valor }))
+        }));
+
+        // Agendamentos
+        const { data: agendamentos, error: errAG } = await supabase
+            .from('agendamentos').select('*').order('data', { ascending: true });
+        if (errAG) throw errAG;
+        AppState.data.agendamentos = (agendamentos || []).map(a => ({
+            ...a,
+            clienteId: a.cliente_id,
+            veiculoId: a.veiculo_id,
+            tipoServico: a.tipo_servico
+        }));
+
+        // Contas a Pagar
+        const { data: contasPagar, error: errCP } = await supabase
+            .from('contas_pagar').select('*').order('vencimento', { ascending: true });
+        if (errCP) throw errCP;
+        AppState.data.contasPagar = contasPagar || [];
+
+        // Contas a Receber
+        const { data: contasReceber, error: errCR } = await supabase
+            .from('contas_receber').select('*').order('vencimento', { ascending: true });
+        if (errCR) throw errCR;
+        AppState.data.contasReceber = (contasReceber || []).map(c => ({
+            ...c,
+            osId: c.os_id,
+            osNumero: c.os_numero,
+            pagadorTipo: c.pagador_tipo,
+            pagadorNome: c.pagador_nome,
+            formaPagamento: c.forma_pagamento,
+            parcelasTotal: c.parcelas_total,
+            parcelasRecebidas: c.parcelas_recebidas,
+            valorRecebido: c.valor_recebido
+        }));
+
+        // Contas Fixas
+        const { data: contasFixas, error: errCF } = await supabase
+            .from('contas_fixas').select('*').order('dia_vencimento', { ascending: true });
+        if (errCF) throw errCF;
+        AppState.data.contasFixas = (contasFixas || []).map(c => ({
+            ...c,
+            valorMensal: c.valor_mensal,
+            diaVencimento: c.dia_vencimento,
+            pagoEsteMes: c.pago_este_mes
+        }));
 
         console.log('Dados carregados do Supabase:', {
             clientes: AppState.data.clientes.length,
             veiculos: AppState.data.veiculos.length,
-            os: AppState.data.ordensServico.length
-        })
+            os: AppState.data.ordensServico.length,
+            agendamentos: AppState.data.agendamentos.length,
+            contasPagar: AppState.data.contasPagar.length,
+            contasReceber: AppState.data.contasReceber.length,
+            contasFixas: AppState.data.contasFixas.length
+        });
 
     } catch (e) {
-        console.error('Erro ao carregar dados do Supabase:', e)
-        showToast('Erro ao carregar dados!', 'error')
+        console.error('Erro ao carregar dados do Supabase:', e);
+        showToast('Erro ao carregar dados!', 'error');
     }
 }
 
-// Manter saveToLocalStorage como no-op para nao quebrar outros modulos
+// no-op para nao quebrar chamadas legadas
 function saveToLocalStorage() {}
 function loadFromLocalStorage() {}
 
@@ -113,7 +155,7 @@ async function initApp() {
     renderOrdensServico();
 
     if (typeof initFinanceiro === 'function') {
-        try { initFinanceiro(); } catch (e) { console.error('Erro financeiro:', e); }
+        try { await initFinanceiro(); } catch (e) { console.error('Erro financeiro:', e); }
     }
 
     if (typeof setupDashboardCards === 'function') setupDashboardCards();
@@ -135,7 +177,6 @@ function checkAuth() {
         return false;
     }
 }
-
 
 function updateUserInfo() {
     if (AppState.user) {
@@ -189,61 +230,49 @@ function toggleSidebar() {
 function updateDashboard() {
     const { ordensServico, clientes, veiculos, agendamentos } = AppState.data;
 
-    const osAbertasEl = document.getElementById('osAbertas');
-    const osHojeEl = document.getElementById('osHoje');
-    const totalClientesEl = document.getElementById('totalClientes');
-    const totalVeiculosEl = document.getElementById('totalVeiculos');
-
-    if (osAbertasEl) osAbertasEl.textContent = ordensServico.filter(os => os.status !== 'concluida').length;
-    if (osHojeEl) osHojeEl.textContent = ordensServico.filter(os => isToday(os.data)).length;
-    if (totalClientesEl) totalClientesEl.textContent = clientes.length;
-    if (totalVeiculosEl) totalVeiculosEl.textContent = veiculos.length;
+    const el = (id) => document.getElementById(id);
+    if (el('osAbertas')) el('osAbertas').textContent = ordensServico.filter(os => os.status !== 'concluida').length;
+    if (el('osHoje')) el('osHoje').textContent = ordensServico.filter(os => isToday(os.data)).length;
+    if (el('totalClientes')) el('totalClientes').textContent = clientes.length;
+    if (el('totalVeiculos')) el('totalVeiculos').textContent = veiculos.length;
 
     const contasReceberList = AppState.data.contasReceber || [];
     const contasPagarList = AppState.data.contasPagar || [];
 
     const totalReceber = contasReceberList
         .filter(c => ['aberta', 'parcial', 'atrasada', 'pendente'].includes(c.status || 'aberta'))
-        .reduce((sum, c) => sum + Math.max(0, Number(c.valor || 0) - Number(c.valorRecebido || 0)), 0);
+        .reduce((sum, c) => sum + Math.max(0, Number(c.valor || 0) - Number(c.valorRecebido || c.valor_recebido || 0)), 0);
 
     const totalPagarDireto = contasPagarList
         .filter(c => ['aberta', 'atrasada', 'pendente'].includes(c.status || 'aberta'))
         .reduce((sum, c) => sum + Number(c.valor || 0), 0);
 
     const totalPagarFixas = (AppState.data.contasFixas || [])
-        .filter(c => !c.pagoEsteMes)
-        .reduce((sum, c) => sum + Number(c.valorMensal || 0), 0);
+        .filter(c => !(c.pagoEsteMes || c.pago_este_mes))
+        .reduce((sum, c) => sum + Number(c.valorMensal || c.valor_mensal || 0), 0);
 
     const totalPagar = totalPagarDireto + totalPagarFixas;
 
-    const contasReceberEl = document.getElementById('contasReceber');
-    const contasPagarEl = document.getElementById('contasPagar');
-    if (contasReceberEl) contasReceberEl.textContent = formatMoney(totalReceber);
-    if (contasPagarEl) contasPagarEl.textContent = formatMoney(totalPagar);
+    if (el('contasReceber')) el('contasReceber').textContent = formatMoney(totalReceber);
+    if (el('contasPagar')) el('contasPagar').textContent = formatMoney(totalPagar);
 
     const agendamentosHojeCount = (agendamentos || []).filter(a => isToday(a.data) && a.status !== 'atendido').length;
-    const agendamentosHojeEl = document.getElementById('agendamentosHoje');
-    if (agendamentosHojeEl) agendamentosHojeEl.textContent = agendamentosHojeCount;
+    if (el('agendamentosHoje')) el('agendamentosHoje').textContent = agendamentosHojeCount;
 
     const faturamento = ordensServico
         .filter(os => isCurrentMonth(os.data) && os.status === 'concluida')
-        .reduce((sum, os) => sum + (os.valorTotal || os.valor_total || 0), 0);
-
-    const faturamentoMesEl = document.getElementById('faturamentoMes');
-    if (faturamentoMesEl) faturamentoMesEl.textContent = formatMoney(faturamento);
+        .reduce((sum, os) => sum + Number(os.valorTotal || os.valor_total || 0), 0);
+    if (el('faturamentoMes')) el('faturamentoMes').textContent = formatMoney(faturamento);
 }
 
 function renderRecentOS() {
     const tbody = document.getElementById('recentOSTable');
     if (!tbody) return;
-
     const ordensServico = AppState.data.ordensServico.slice(0, 5);
-
     if (ordensServico.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhuma OS registrada ainda</td></tr>';
         return;
     }
-
     tbody.innerHTML = ordensServico.map(os => `
         <tr>
             <td><strong>${os.numero}</strong></td>
@@ -251,11 +280,7 @@ function renderRecentOS() {
             <td>${os.veiculo}</td>
             <td>${getStatusBadge(os.status)}</td>
             <td>${formatDate(os.data)}</td>
-            <td>
-                <button class="btn-icon" onclick="viewOS('${os.id}')" title="Ver detalhes">
-                    <i class="fas fa-eye"></i>
-                </button>
-            </td>
+            <td><button class="btn-icon" onclick="viewOS('${os.id}')" title="Ver detalhes"><i class="fas fa-eye"></i></button></td>
         </tr>
     `).join('');
 }
@@ -270,28 +295,21 @@ function getStatusBadge(status) {
     return badges[status] || status;
 }
 
-function showToastFallback(message, type = 'info') {
-    alert(message);
-}
-
 function updateOficinaNome() {
     const nomeExibicao = AppState.oficina.nomeExibicao || AppState.oficina.nome || 'CheckAuto';
     const subtitulo = AppState.oficina.subtitulo || 'Sistema de Gestao';
-    const nomeElement = document.getElementById('oficinaNome');
-    const sidebarNome = document.getElementById('sidebarNomeSistema');
-    const subtituloElement = document.getElementById('oficinaSubtitulo');
-
-    if (nomeElement) nomeElement.textContent = nomeExibicao;
-    if (sidebarNome) sidebarNome.textContent = nomeExibicao;
-    if (subtituloElement) subtituloElement.textContent = subtitulo;
+    const el = (id) => document.getElementById(id);
+    if (el('oficinaNome')) el('oficinaNome').textContent = nomeExibicao;
+    if (el('sidebarNomeSistema')) el('sidebarNomeSistema').textContent = nomeExibicao;
+    if (el('oficinaSubtitulo')) el('oficinaSubtitulo').textContent = subtitulo;
 }
 
 async function logout() {
     if (confirm('Deseja realmente sair do sistema?')) {
-        await supabase.auth.signOut()
-        localStorage.removeItem('checkauto_user')
-        sessionStorage.removeItem('checkauto_user')
-        window.location.href = 'login.html'
+        await supabase.auth.signOut();
+        localStorage.removeItem('checkauto_user');
+        sessionStorage.removeItem('checkauto_user');
+        window.location.href = 'login.html';
     }
 }
 
@@ -322,15 +340,29 @@ function isCurrentMonth(dateString) {
     return date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
 }
 
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer') || document.body;
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    toast.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:8px;color:#fff;font-weight:500;z-index:9999;animation:fadeIn .3s ease';
+    const colors = { success: '#27ae60', error: '#e74c3c', info: '#3498db', warning: '#f39c12' };
+    toast.style.background = colors[type] || colors.info;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
+}
+
 // ============================================
-// START
+// EXPORTS GLOBAIS
 // ============================================
 window.AppState = AppState;
+window.supabase = supabase;
 window.formatMoney = formatMoney;
 window.formatDate = formatDate;
 window.isToday = isToday;
 window.isCurrentMonth = isCurrentMonth;
 window.saveToLocalStorage = saveToLocalStorage;
+window.loadFromSupabase = loadFromSupabase;
 window.navigateTo = navigateTo;
 window.toggleSidebar = toggleSidebar;
 window.logout = logout;
@@ -338,11 +370,10 @@ window.getStatusBadge = getStatusBadge;
 window.updateDashboard = updateDashboard;
 window.renderRecentOS = renderRecentOS;
 window.updateOficinaNome = updateOficinaNome;
-
+window.showToast = showToast;
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initApp);
 } else {
     initApp();
 }
-
