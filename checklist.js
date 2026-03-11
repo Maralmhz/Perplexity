@@ -588,14 +588,6 @@ async function gerarPDF() {
     const combustivelNivel = document.getElementById('nivelCombustivel')?.value || '0';
     const observacoes = document.getElementById('observacoes')?.value?.trim() || '-';
 
-    const statusRegulacao = document.getElementById('statusRegulacao')?.value || '';
-    const seguradora = document.getElementById('seguradora')?.value?.trim() || '';
-    const regulador = document.getElementById('regulador')?.value?.trim() || '';
-    const dataRegulacao = document.getElementById('dataRegulacao')?.value || '';
-
-    const tipoMap = { 'total': 'SEGURADORA', 'parcial': 'SEGURADORA / CLIENTE', 'pendente': 'CLIENTE', 'associacao': 'ASSOCIACAO' };
-    const tipoPagador = tipoMap[statusRegulacao] || statusRegulacao.toUpperCase() || 'NAO INFORMADO';
-
     const combustivelTipos = Array.from(document.querySelectorAll('.combustivel-btn.active')).map(btn => btn.textContent.trim()).filter(Boolean);
 
     const inspecaoVisual = {
@@ -622,6 +614,8 @@ async function gerarPDF() {
     const now = new Date();
     const dataEmissao = now.toLocaleDateString('pt-BR');
     const horaEmissao = now.toLocaleTimeString('pt-BR');
+    // Validade: 15 dias a partir da emissao
+    const dataValidade = new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR');
     const dataArquivo = dataEmissao.replace(/\//g, '-');
     const nomeArquivo = 'OS-' + placa + '-' + dataArquivo + '_CHECKLIST.pdf';
     const formatCurrency = (valor) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(valor || 0));
@@ -655,7 +649,7 @@ async function gerarPDF() {
     const drawFooterSimples = () => {
         doc.setDrawColor(190, 190, 190); doc.line(22, 270, 188, 270);
         doc.setFont('helvetica', 'normal'); doc.setTextColor(140, 140, 140); doc.setFontSize(5.6);
-        doc.text('CHECKLIST GERADO POR ' + oficina.nome + ' CNPJ: ' + oficina.cnpj + ' - ' + dataEmissao + ', ' + horaEmissao, 105, 275, { align: 'center' });
+        doc.text('DOCUMENTO GERADO POR ' + oficina.nome + ' | CNPJ: ' + oficina.cnpj + ' | ' + dataEmissao + ' ' + horaEmissao, 105, 275, { align: 'center' });
     };
 
     const drawFooterComAssinaturas = () => {
@@ -668,7 +662,7 @@ async function gerarPDF() {
         doc.setFont('helvetica', 'normal'); doc.setTextColor(140, 140, 140); doc.setFontSize(5.6);
         doc.text('ASSINATURA DO CLIENTE', 55, 264, { align: 'center' });
         doc.text('ASSINATURA DO TECNICO', 155, 264, { align: 'center' });
-        doc.text('CHECKLIST GERADO POR ' + oficina.nome + ' CNPJ: ' + oficina.cnpj + ' - ' + dataEmissao + ', ' + horaEmissao, 105, 275, { align: 'center' });
+        doc.text('DOCUMENTO GERADO POR ' + oficina.nome + ' | CNPJ: ' + oficina.cnpj + ' | ' + dataEmissao + ' ' + horaEmissao, 105, 275, { align: 'center' });
     };
 
     const drawSectionBox = (x, y, w, h, title, lines = []) => {
@@ -725,14 +719,13 @@ async function gerarPDF() {
         img.src = dataUrl;
     });
 
-    // ── TABELA PDF: apenas DESCRICAO + VALOR (sem coluna REGULADO) ──────────
+    // ── TABELA: DESCRICAO + VALOR apenas ────────────────────────────────────
     const drawCompactTableCard = (x, y, w, title, color, items, totalLabel) => {
         doc.setFont('helvetica', 'bold'); doc.setTextColor(30, 30, 30); doc.setFontSize(8.5);
         doc.text(title, x, y);
-        const top = y + 3, tableHeight = 157;
+        const top = y + 3, tableHeight = 152;
         doc.setDrawColor(color[0], color[1], color[2]);
         doc.roundedRect(x, top, w, tableHeight, 1.5, 1.5);
-        // Apenas duas colunas: DESCRICAO e VALOR
         const colDesc  = x;
         const colValor = x + w * 0.68;
         doc.setDrawColor(205, 205, 205);
@@ -754,101 +747,83 @@ async function gerarPDF() {
             rowY += rowH;
             if (rowY > top + tableHeight - 1.5) return;
         });
+        // Rodape colorido com total — dentro do card, sem sobrepor
+        const totalBoxY = top + tableHeight + 2;
+        doc.setFillColor(color[0], color[1], color[2]);
+        doc.roundedRect(x, totalBoxY, w, 9, 1.5, 1.5, 'F');
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255); doc.setFontSize(9);
         const total = items.reduce((acc, item) => acc + (Number(item.valor) || 0), 0);
-        const totalY = top + tableHeight + 4;
-        doc.setDrawColor(color[0], color[1], color[2]);
-        doc.roundedRect(x, totalY, w, 10, 1.5, 1.5);
-        doc.setFont('helvetica', 'bold'); doc.setTextColor(color[0], color[1], color[2]); doc.setFontSize(10);
-        doc.text(totalLabel, x + 3, totalY + 6.5);
-        doc.text(formatCurrency(total), x + w - 3, totalY + 6.5, { align: 'right' });
-        if (items.length > maxRows) {
-            doc.setFont('helvetica', 'normal'); doc.setTextColor(130, 130, 130); doc.setFontSize(5.5);
-            doc.text('Exibindo 40 de ' + items.length + ' itens', x + 2, totalY + 13.5);
-        }
-        return { total };
+        doc.text(totalLabel, x + 3, totalBoxY + 6);
+        doc.text(formatCurrency(total), x + w - 3, totalBoxY + 6, { align: 'right' });
+        return { total, bottomY: totalBoxY + 9 };
     };
 
-    // ── AREA AMARELA PROFISSIONAL - layout renovado ─────────────────────────
-    const drawRegulacaoBox = (x, y, w, h) => {
-        // Fundo branco-creme com borda dourada
-        doc.setFillColor(255, 252, 235);
-        doc.setDrawColor(180, 140, 0);
-        doc.setLineWidth(0.8);
-        doc.roundedRect(x, y, w, h, 2.5, 2.5, 'FD');
+    // ── BLOCO TOTAL GERAL (separado, abaixo dos dois cards) ─────────────────
+    const drawTotalGeral = (x, y, w, totalPecas, totalServicos) => {
+        const total = totalPecas + totalServicos;
+        // linha divisoria
+        doc.setDrawColor(180, 180, 180); doc.setLineWidth(0.4);
+        doc.line(x, y + 1, x + w, y + 1);
         doc.setLineWidth(0.2);
+        // caixa verde total geral
+        doc.setFillColor(22, 163, 74);
+        doc.roundedRect(x, y + 3, w, 11, 2, 2, 'F');
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255); doc.setFontSize(11);
+        doc.text('TOTAL GERAL DO ORCAMENTO:', x + 4, y + 10.5);
+        doc.setFontSize(12);
+        doc.text(formatCurrency(total), x + w - 4, y + 10.5, { align: 'right' });
+        // info data emissao e validade
+        doc.setFont('helvetica', 'normal'); doc.setTextColor(80, 80, 80); doc.setFontSize(6);
+        doc.text('Emissao: ' + dataEmissao + ' ' + horaEmissao + '   |   Validade do orcamento: ' + dataValidade, x + w / 2, y + 17, { align: 'center' });
+    };
 
-        // Faixa superior amarelo-ouro
-        doc.setFillColor(234, 179, 8);
-        doc.roundedRect(x, y, w, 9, 2.5, 2.5, 'F');
-        doc.rect(x, y + 4.5, w, 4.5, 'F');
-
-        // Icone e titulo na faixa
-        doc.setFont('helvetica', 'bold'); doc.setTextColor(60, 40, 0); doc.setFontSize(8);
-        doc.text('\u26A0  REGULACAO / RESPONSAVEL PELO PAGAMENTO', x + w / 2, y + 6, { align: 'center' });
-
-        // Linha fina abaixo da faixa
-        doc.setDrawColor(200, 160, 0); doc.setLineWidth(0.4);
-        doc.line(x + 2, y + 9.5, x + w - 2, y + 9.5);
-        doc.setLineWidth(0.2);
-
-        // Grade interna 4 celulas: [Seguradora | Regulador | Data | Status]
-        const cellW = (w - 8) / 4;
-        const cellY = y + 11;
-        const cells = [
-            { label: 'SEGURADORA', value: seguradora || 'Nao informada' },
-            { label: 'REGULADOR', value: regulador || 'Nao informado' },
-            { label: 'DATA DA REGULACAO', value: dataRegulacao ? new Date(dataRegulacao + 'T12:00:00').toLocaleDateString('pt-BR') : '-' },
-            { label: 'RESPONSAVEL', value: tipoPagador }
+    // ── TERMO DE APROVACAO DO CLIENTE ────────────────────────────────────────
+    const drawTermoAprovacao = (x, y, w, h) => {
+        doc.setDrawColor(200, 200, 200); doc.setFillColor(252, 252, 252);
+        doc.roundedRect(x, y, w, h, 2, 2, 'FD');
+        // cabecalho cinza
+        doc.setFillColor(240, 240, 240);
+        doc.roundedRect(x, y, w, 7, 2, 2, 'F');
+        doc.rect(x, y + 3.5, w, 3.5, 'F');
+        doc.setFont('helvetica', 'bold'); doc.setTextColor(50, 50, 50); doc.setFontSize(7);
+        doc.text('APROVACAO E CIENCIA DO CLIENTE', x + w / 2, y + 5.2, { align: 'center' });
+        // Texto do termo
+        doc.setFont('helvetica', 'normal'); doc.setTextColor(60, 60, 60); doc.setFontSize(6.2);
+        const termoTexto = [
+            'Declaro estar ciente e de acordo com os servicos e pecas relacionados neste orcamento,',
+            'autorizando a Fast Car Centro Automotivo a executar os servicos descritos acima.',
+            'ATENCAO: Este orcamento e valido por 15 dias a partir da data de emissao (' + dataEmissao + '), vencendo em ' + dataValidade + '.',
+            'Apos aprovacao, podem ocorrer complementos de orcamento durante a desmontagem ou no decorrer da execucao dos servicos,',
+            'situacao em que o cliente sera previamente comunicado para nova autorizacao.'
         ];
-        const statusColors = {
-            'SEGURADORA':          [22, 163, 74],
-            'SEGURADORA / CLIENTE': [202, 138, 4],
-            'ASSOCIACAO':          [37, 99, 235],
-            'CLIENTE':             [185, 28, 28]
-        };
-        cells.forEach((cell, i) => {
-            const cx = x + 4 + i * (cellW + 2);
-            // Fundo celula
-            doc.setFillColor(255, 255, 255);
-            doc.setDrawColor(220, 185, 0);
-            doc.roundedRect(cx, cellY, cellW, h - 22, 1.5, 1.5, 'FD');
-            // Label pequeno cinza
-            doc.setFont('helvetica', 'bold'); doc.setTextColor(120, 90, 0); doc.setFontSize(5.5);
-            doc.text(cell.label, cx + cellW / 2, cellY + 5, { align: 'center' });
-            // Linha separadora interna
-            doc.setDrawColor(235, 210, 100);
-            doc.line(cx + 2, cellY + 6.5, cx + cellW - 2, cellY + 6.5);
-            // Valor — se for o campo STATUS usa badge colorido
-            if (i === 3) {
-                const cor = statusColors[cell.value] || [130, 130, 130];
-                const bW = Math.min(cellW - 4, doc.getTextWidth(cell.value) + 6);
-                const bX = cx + (cellW - bW) / 2;
-                doc.setFillColor(cor[0], cor[1], cor[2]);
-                doc.roundedRect(bX, cellY + 8.5, bW, 6, 1.2, 1.2, 'F');
-                doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255); doc.setFontSize(6);
-                doc.text(cell.value, cx + cellW / 2, cellY + 12.8, { align: 'center' });
-            } else {
-                doc.setFont('helvetica', 'normal'); doc.setTextColor(30, 30, 30); doc.setFontSize(7);
-                const linhas = doc.splitTextToSize(cell.value, cellW - 4);
-                linhas.slice(0, 2).forEach((ln, li) => {
-                    doc.text(ln, cx + cellW / 2, cellY + 10 + li * 4.5, { align: 'center' });
-                });
-            }
+        let ty = y + 12;
+        termoTexto.forEach(linha => {
+            doc.text(linha, x + w / 2, ty, { align: 'center' });
+            ty += 4;
         });
-
-        // Linha de assinatura do regulador (parte inferior)
-        const assinY = y + h - 9;
-        doc.setDrawColor(160, 130, 0); doc.setLineWidth(0.4);
-        doc.line(x + 6, assinY, x + w / 2 - 6, assinY);
-        doc.line(x + w / 2 + 6, assinY, x + w - 6, assinY);
-        doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 80, 0); doc.setFontSize(5.5);
-        doc.text('Assinatura do Regulador', x + w / 4, y + h - 4.5, { align: 'center' });
-        doc.text('Assinatura do Responsavel', x + w * 0.75, y + h - 4.5, { align: 'center' });
+        // Tres campos de assinatura lado a lado
+        const colW3 = (w - 10) / 3;
+        const assinY = y + h - 14;
+        [0, 1, 2].forEach(i => {
+            const cx = x + 4 + i * (colW3 + 1);
+            doc.setDrawColor(160, 160, 160); doc.setLineWidth(0.4);
+            doc.line(cx, assinY, cx + colW3, assinY);
+            doc.setLineWidth(0.2);
+        });
+        doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 100, 100); doc.setFontSize(5.8);
+        const labels3 = ['Aprovado por / Assinatura do Cliente', 'Responsavel Tecnico / Aprovador', 'Data e Hora da Aprovacao'];
+        labels3.forEach((lbl, i) => {
+            const cx = x + 4 + i * (colW3 + 1);
+            doc.text(lbl, cx + colW3 / 2, y + h - 7, { align: 'center' });
+        });
+        // Frase pequena de ciencia
+        doc.setFont('helvetica', 'italic'); doc.setTextColor(130, 130, 130); doc.setFontSize(5.2);
+        doc.text('"Estou ciente dos termos acima e autorizo a execucao dos servicos."', x + w / 2, y + h - 2.5, { align: 'center' });
     };
 
     showToast('Gerando PDF...');
 
-    // ── PAGINA 1: CHECKLIST + FOTOS + ASSINATURAS ───────────────────────────
+    // ── PAGINA 1 ─────────────────────────────────────────────────────────────
     drawBasePage(); drawHeader();
 
     drawSectionBox(22, 44, 82, 20, 'CLIENTE', [
@@ -891,25 +866,23 @@ async function gerarPDF() {
 
     drawFooterComAssinaturas();
 
-    // ── PAGINA 2: PECAS, SERVICOS E REGULACAO ───────────────────────────────
+    // ── PAGINA 2: PECAS + SERVICOS + TOTAIS + TERMO ──────────────────────────
     doc.addPage();
     drawBasePage(); drawHeader();
 
     const colW = 82;
+    // tabelas lado a lado (altura reduzida para caber totais + termo abaixo)
     const cardPecas    = drawCompactTableCard(22,  47, colW, 'PECAS',    [20, 105, 200], pecas,    'TOTAL PECAS');
     const cardServicos = drawCompactTableCard(107, 47, colW, 'SERVICOS', [220, 40,  40],  servicos, 'TOTAL SERVICOS');
 
-    // Total geral
-    const totalGeral = cardPecas.total + cardServicos.total;
-    doc.setFillColor(240, 240, 240);
-    doc.roundedRect(22, 218, 166, 12, 1.5, 1.5, 'F');
-    doc.setFont('helvetica', 'bold'); doc.setTextColor(55, 55, 55); doc.setFontSize(11);
-    doc.text('TOTAL GERAL:', 104, 226, { align: 'center' });
-    doc.setTextColor(28, 170, 90);
-    doc.text(formatCurrency(totalGeral), 182, 226, { align: 'right' });
+    // Total geral — posicionado logo abaixo do bottomY maior dos dois cards
+    const abaixoCards = Math.max(cardPecas.bottomY, cardServicos.bottomY) + 2;
+    drawTotalGeral(22, abaixoCards, 166, cardPecas.total, cardServicos.total);
 
-    // Area de regulacao profissional
-    drawRegulacaoBox(22, 233, 166, 38);
+    // Termo de aprovacao — logo abaixo do total geral
+    const termoY = abaixoCards + 22;
+    const termoH = 270 - termoY;
+    drawTermoAprovacao(22, termoY, 166, termoH);
 
     drawFooterSimples();
 
