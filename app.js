@@ -337,6 +337,8 @@ window.logout = logout;
 window.getStatusBadge = getStatusBadge;
 window.updateDashboard = updateDashboard;
 window.renderRecentOS = renderRecentOS;
+window.updateOficinaNome = updateOficinaNome;
+
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initApp);
