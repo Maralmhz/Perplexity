@@ -41,78 +41,115 @@ const AppState = {
 };
 
 // ============================================
+// VERIFICAR AUTENTICACAO (localStorage + Supabase Auth)
+// ============================================
+async function checkAuth() {
+    // Primeiro tenta pelo storage local (caminho rapido)
+    const stored = localStorage.getItem('checkauto_user') || sessionStorage.getItem('checkauto_user');
+    if (stored) {
+        try {
+            AppState.user = JSON.parse(stored);
+            return true;
+        } catch(e) {}
+    }
+
+    // Fallback: verifica sessao ativa do Supabase Auth
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return false;
+
+        // Busca dados do usuario na tabela usuarios
+        const { data: usuario } = await supabase
+            .from('usuarios')
+            .select('*, oficinas(*)')
+            .eq('id', session.user.id)
+            .single();
+
+        const sessionData = {
+            id:         session.user.id,
+            email:      session.user.email,
+            nome:       usuario?.nome  || session.user.email.split('@')[0],
+            role:       usuario?.role  || 'user',
+            oficina_id: usuario?.oficina_id,
+            oficina:    usuario?.oficinas,
+            loginTime:  new Date().toISOString()
+        };
+
+        // Persiste para proximas visitas
+        sessionStorage.setItem('checkauto_user', JSON.stringify(sessionData));
+        AppState.user = sessionData;
+        return true;
+    } catch(e) {
+        console.warn('Erro ao verificar sessao Supabase:', e);
+        return false;
+    }
+}
+
+// ============================================
 // CARREGAR TODOS OS DADOS DO SUPABASE
 // ============================================
 async function loadFromSupabase() {
     try {
-        // Clientes
         const { data: clientes, error: errClientes } = await supabase.from('clientes').select('*').order('nome');
         if (errClientes) throw errClientes;
         AppState.data.clientes = clientes || [];
 
-        // Veiculos
         const { data: veiculos, error: errVeiculos } = await supabase.from('veiculos').select('*').order('modelo');
         if (errVeiculos) throw errVeiculos;
         AppState.data.veiculos = (veiculos || []).map(v => ({ ...v, clienteId: v.cliente_id }));
 
-        // Ordens de Servico
         const { data: ordensServico, error: errOS } = await supabase
             .from('ordens_servico').select('*, os_servicos(*)').order('created_at', { ascending: false });
         if (errOS) throw errOS;
         AppState.data.ordensServico = (ordensServico || []).map(os => ({
             ...os,
-            clienteId: os.cliente_id,
-            veiculoId: os.veiculo_id,
-            valorTotal: os.valor_total,
+            clienteId:     os.cliente_id,
+            veiculoId:     os.veiculo_id,
+            valorTotal:    os.valor_total,
             dataConclusao: os.data_conclusao,
             servicos: (os.os_servicos || []).map(s => ({ id: s.id, descricao: s.descricao, valor: s.valor }))
         }));
 
-        // Agendamentos
         const { data: agendamentos, error: errAG } = await supabase
             .from('agendamentos').select('*').order('data', { ascending: true });
         if (errAG) throw errAG;
         AppState.data.agendamentos = (agendamentos || []).map(a => ({
             ...a,
-            clienteId: a.cliente_id,
-            veiculoId: a.veiculo_id,
+            clienteId:   a.cliente_id,
+            veiculoId:   a.veiculo_id,
             tipoServico: a.tipo_servico
         }));
 
-        // Contas a Pagar
         const { data: contasPagar, error: errCP } = await supabase
             .from('contas_pagar').select('*').order('vencimento', { ascending: true });
         if (errCP) throw errCP;
         AppState.data.contasPagar = contasPagar || [];
 
-        // Contas a Receber
         const { data: contasReceber, error: errCR } = await supabase
             .from('contas_receber').select('*').order('vencimento', { ascending: true });
         if (errCR) throw errCR;
         AppState.data.contasReceber = (contasReceber || []).map(c => ({
             ...c,
-            osId: c.os_id,
-            osNumero: c.os_numero,
-            pagadorTipo: c.pagador_tipo,
-            pagadorNome: c.pagador_nome,
-            formaPagamento: c.forma_pagamento,
-            parcelasTotal: c.parcelas_total,
+            osId:              c.os_id,
+            osNumero:          c.os_numero,
+            pagadorTipo:       c.pagador_tipo,
+            pagadorNome:       c.pagador_nome,
+            formaPagamento:    c.forma_pagamento,
+            parcelasTotal:     c.parcelas_total,
             parcelasRecebidas: c.parcelas_recebidas,
-            valorRecebido: c.valor_recebido
+            valorRecebido:     c.valor_recebido
         }));
 
-        // Contas Fixas
         const { data: contasFixas, error: errCF } = await supabase
             .from('contas_fixas').select('*').order('dia_vencimento', { ascending: true });
         if (errCF) throw errCF;
         AppState.data.contasFixas = (contasFixas || []).map(c => ({
             ...c,
-            valorMensal: c.valor_mensal,
+            valorMensal:   c.valor_mensal,
             diaVencimento: c.dia_vencimento,
-            pagoEsteMes: c.pago_este_mes
+            pagoEsteMes:   c.pago_este_mes
         }));
 
-        // Checklists
         const { data: checklists, error: errCK } = await supabase
             .from('checklists').select('*').order('created_at', { ascending: false });
         if (errCK) throw errCK;
@@ -144,7 +181,8 @@ function loadFromLocalStorage() {}
 async function initApp() {
     console.log('Iniciando CheckAuto...');
 
-    if (!checkAuth()) {
+    const autenticado = await checkAuth();
+    if (!autenticado) {
         window.location.href = 'login.html';
         return;
     }
@@ -171,17 +209,6 @@ async function initApp() {
     });
 
     console.log('CheckAuto inicializado com Supabase!');
-}
-
-function checkAuth() {
-    const user = localStorage.getItem('checkauto_user') || sessionStorage.getItem('checkauto_user');
-    if (!user) return false;
-    try {
-        AppState.user = JSON.parse(user);
-        return true;
-    } catch (e) {
-        return false;
-    }
 }
 
 function updateUserInfo() {
