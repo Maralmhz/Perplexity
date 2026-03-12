@@ -7,7 +7,6 @@ const SUPABASE_URL = 'https://hefpzigrxyyhvtgkyspr.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_Af0DdLvEB9NuDE69aIPr_w_3a55KPLk'
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
-// Expoe como global para os outros modulos reutilizarem
 window._supabase = supabase;
 
 // ============================================
@@ -36,7 +35,8 @@ const AppState = {
         agendamentos: [],
         contasReceber: [],
         contasPagar: [],
-        contasFixas: []
+        contasFixas: [],
+        checklists: []
     }
 };
 
@@ -55,7 +55,7 @@ async function loadFromSupabase() {
         if (errVeiculos) throw errVeiculos;
         AppState.data.veiculos = (veiculos || []).map(v => ({ ...v, clienteId: v.cliente_id }));
 
-        // Ordens de Servico com servicos
+        // Ordens de Servico
         const { data: ordensServico, error: errOS } = await supabase
             .from('ordens_servico').select('*, os_servicos(*)').order('created_at', { ascending: false });
         if (errOS) throw errOS;
@@ -112,14 +112,21 @@ async function loadFromSupabase() {
             pagoEsteMes: c.pago_este_mes
         }));
 
+        // Checklists
+        const { data: checklists, error: errCK } = await supabase
+            .from('checklists').select('*').order('created_at', { ascending: false });
+        if (errCK) throw errCK;
+        AppState.data.checklists = checklists || [];
+
         console.log('Dados carregados do Supabase:', {
-            clientes: AppState.data.clientes.length,
-            veiculos: AppState.data.veiculos.length,
-            os: AppState.data.ordensServico.length,
-            agendamentos: AppState.data.agendamentos.length,
-            contasPagar: AppState.data.contasPagar.length,
+            clientes:      AppState.data.clientes.length,
+            veiculos:      AppState.data.veiculos.length,
+            os:            AppState.data.ordensServico.length,
+            agendamentos:  AppState.data.agendamentos.length,
+            contasPagar:   AppState.data.contasPagar.length,
             contasReceber: AppState.data.contasReceber.length,
-            contasFixas: AppState.data.contasFixas.length
+            contasFixas:   AppState.data.contasFixas.length,
+            checklists:    AppState.data.checklists.length
         });
 
     } catch (e) {
@@ -128,7 +135,6 @@ async function loadFromSupabase() {
     }
 }
 
-// no-op para nao quebrar chamadas legadas
 function saveToLocalStorage() {}
 function loadFromLocalStorage() {}
 
@@ -229,39 +235,37 @@ function toggleSidebar() {
 // ============================================
 function updateDashboard() {
     const { ordensServico, clientes, veiculos, agendamentos } = AppState.data;
-
     const el = (id) => document.getElementById(id);
-    if (el('osAbertas')) el('osAbertas').textContent = ordensServico.filter(os => os.status !== 'concluida').length;
-    if (el('osHoje')) el('osHoje').textContent = ordensServico.filter(os => isToday(os.data)).length;
+
+    if (el('osAbertas'))     el('osAbertas').textContent     = ordensServico.filter(os => os.status !== 'concluida').length;
+    if (el('osHoje'))        el('osHoje').textContent        = ordensServico.filter(os => isToday(os.data)).length;
     if (el('totalClientes')) el('totalClientes').textContent = clientes.length;
     if (el('totalVeiculos')) el('totalVeiculos').textContent = veiculos.length;
 
     const contasReceberList = AppState.data.contasReceber || [];
-    const contasPagarList = AppState.data.contasPagar || [];
+    const contasPagarList   = AppState.data.contasPagar   || [];
 
     const totalReceber = contasReceberList
-        .filter(c => ['aberta', 'parcial', 'atrasada', 'pendente'].includes(c.status || 'aberta'))
-        .reduce((sum, c) => sum + Math.max(0, Number(c.valor || 0) - Number(c.valorRecebido || c.valor_recebido || 0)), 0);
+        .filter(c => ['aberta','parcial','atrasada','pendente'].includes(c.status || 'aberta'))
+        .reduce((sum, c) => sum + Math.max(0, Number(c.valor||0) - Number(c.valorRecebido||c.valor_recebido||0)), 0);
 
     const totalPagarDireto = contasPagarList
-        .filter(c => ['aberta', 'atrasada', 'pendente'].includes(c.status || 'aberta'))
-        .reduce((sum, c) => sum + Number(c.valor || 0), 0);
+        .filter(c => ['aberta','atrasada','pendente'].includes(c.status || 'aberta'))
+        .reduce((sum, c) => sum + Number(c.valor||0), 0);
 
-    const totalPagarFixas = (AppState.data.contasFixas || [])
-        .filter(c => !(c.pagoEsteMes || c.pago_este_mes))
-        .reduce((sum, c) => sum + Number(c.valorMensal || c.valor_mensal || 0), 0);
-
-    const totalPagar = totalPagarDireto + totalPagarFixas;
+    const totalPagarFixas = (AppState.data.contasFixas||[])
+        .filter(c => !(c.pagoEsteMes||c.pago_este_mes))
+        .reduce((sum, c) => sum + Number(c.valorMensal||c.valor_mensal||0), 0);
 
     if (el('contasReceber')) el('contasReceber').textContent = formatMoney(totalReceber);
-    if (el('contasPagar')) el('contasPagar').textContent = formatMoney(totalPagar);
+    if (el('contasPagar'))   el('contasPagar').textContent   = formatMoney(totalPagarDireto + totalPagarFixas);
 
-    const agendamentosHojeCount = (agendamentos || []).filter(a => isToday(a.data) && a.status !== 'atendido').length;
+    const agendamentosHojeCount = (agendamentos||[]).filter(a => isToday(a.data) && a.status !== 'atendido').length;
     if (el('agendamentosHoje')) el('agendamentosHoje').textContent = agendamentosHojeCount;
 
     const faturamento = ordensServico
         .filter(os => isCurrentMonth(os.data) && os.status === 'concluida')
-        .reduce((sum, os) => sum + Number(os.valorTotal || os.valor_total || 0), 0);
+        .reduce((sum, os) => sum + Number(os.valorTotal||os.valor_total||0), 0);
     if (el('faturamentoMes')) el('faturamentoMes').textContent = formatMoney(faturamento);
 }
 
@@ -287,21 +291,21 @@ function renderRecentOS() {
 
 function getStatusBadge(status) {
     const badges = {
-        'aguardando': '<span class="badge badge-warning">Aguardando</span>',
+        'aguardando':   '<span class="badge badge-warning">Aguardando</span>',
         'em_andamento': '<span class="badge badge-info">Em Andamento</span>',
-        'concluida': '<span class="badge badge-success">Concluida</span>',
-        'cancelada': '<span class="badge badge-danger">Cancelada</span>'
+        'concluida':    '<span class="badge badge-success">Concluida</span>',
+        'cancelada':    '<span class="badge badge-danger">Cancelada</span>'
     };
     return badges[status] || status;
 }
 
 function updateOficinaNome() {
     const nomeExibicao = AppState.oficina.nomeExibicao || AppState.oficina.nome || 'CheckAuto';
-    const subtitulo = AppState.oficina.subtitulo || 'Sistema de Gestao';
+    const subtitulo    = AppState.oficina.subtitulo || 'Sistema de Gestao';
     const el = (id) => document.getElementById(id);
-    if (el('oficinaNome')) el('oficinaNome').textContent = nomeExibicao;
+    if (el('oficinaNome'))        el('oficinaNome').textContent        = nomeExibicao;
     if (el('sidebarNomeSistema')) el('sidebarNomeSistema').textContent = nomeExibicao;
-    if (el('oficinaSubtitulo')) el('oficinaSubtitulo').textContent = subtitulo;
+    if (el('oficinaSubtitulo'))   el('oficinaSubtitulo').textContent   = subtitulo;
 }
 
 async function logout() {
@@ -328,14 +332,14 @@ function formatDate(dateString) {
 
 function isToday(dateString) {
     if (!dateString) return false;
-    const date = new Date(dateString + 'T00:00:00');
+    const date  = new Date(dateString + 'T00:00:00');
     const today = new Date();
     return date.toDateString() === today.toDateString();
 }
 
 function isCurrentMonth(dateString) {
     if (!dateString) return false;
-    const date = new Date(dateString + 'T00:00:00');
+    const date  = new Date(dateString + 'T00:00:00');
     const today = new Date();
     return date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
 }
@@ -345,8 +349,8 @@ function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
     toast.textContent = message;
-    toast.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:8px;color:#fff;font-weight:500;z-index:9999;animation:fadeIn .3s ease';
-    const colors = { success: '#27ae60', error: '#e74c3c', info: '#3498db', warning: '#f39c12' };
+    toast.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:8px;color:#fff;font-weight:500;z-index:9999;';
+    const colors = { success:'#27ae60', error:'#e74c3c', info:'#3498db', warning:'#f39c12' };
     toast.style.background = colors[type] || colors.info;
     container.appendChild(toast);
     setTimeout(() => toast.remove(), 3500);
@@ -355,22 +359,22 @@ function showToast(message, type = 'info') {
 // ============================================
 // EXPORTS GLOBAIS
 // ============================================
-window.AppState = AppState;
-window.supabase = supabase;
-window.formatMoney = formatMoney;
-window.formatDate = formatDate;
-window.isToday = isToday;
-window.isCurrentMonth = isCurrentMonth;
+window.AppState          = AppState;
+window.supabase          = supabase;
+window.formatMoney       = formatMoney;
+window.formatDate        = formatDate;
+window.isToday           = isToday;
+window.isCurrentMonth    = isCurrentMonth;
 window.saveToLocalStorage = saveToLocalStorage;
-window.loadFromSupabase = loadFromSupabase;
-window.navigateTo = navigateTo;
-window.toggleSidebar = toggleSidebar;
-window.logout = logout;
-window.getStatusBadge = getStatusBadge;
-window.updateDashboard = updateDashboard;
-window.renderRecentOS = renderRecentOS;
+window.loadFromSupabase  = loadFromSupabase;
+window.navigateTo        = navigateTo;
+window.toggleSidebar     = toggleSidebar;
+window.logout            = logout;
+window.getStatusBadge    = getStatusBadge;
+window.updateDashboard   = updateDashboard;
+window.renderRecentOS    = renderRecentOS;
 window.updateOficinaNome = updateOficinaNome;
-window.showToast = showToast;
+window.showToast         = showToast;
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initApp);
