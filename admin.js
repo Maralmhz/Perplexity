@@ -233,27 +233,66 @@ function populateDetalhes(oficinaId) {
 
 async function loadOficinas() {
   hideFeedback()
-  tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Carregando oficinas...</td></tr>'
+  tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Carregando...</td></tr>'
 
-  const [oficinasRes, osRes, clientesRes, usuariosRes] = await Promise.all([
-    supabase.from('oficinas').select('id, nome, cnpj, email, status, plano, created_at').order('nome', { ascending: true }),
-    supabase.from('ordens_servico').select('oficina_id, status, valor_total, created_at'),
-    supabase.from('clientes').select('oficina_id'),
-    supabase.from('usuarios').select('oficina_id')
-  ])
+  const oficinasQueries = [
+    'id, nome, cnpj, email, status, plano, created_at',
+    'id, nome, email, status, plano, created_at'
+  ]
 
-  if (oficinasRes.error || osRes.error || clientesRes.error || usuariosRes.error) {
-    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Erro ao carregar dados.</td></tr>'
-    showFeedback('Erro ao buscar dados do painel no Supabase.', 'danger')
-    return
+  const fetchOficinas = async () => {
+    for (const query of oficinasQueries) {
+      try {
+        console.log('[admin] Query oficinas:', query)
+        const response = await supabase.from('oficinas').select(query).order('nome', { ascending: true })
+        console.log('[admin] Resposta raw oficinas:', response)
+
+        if (!response.error) return response
+      } catch (error) {
+        console.log('[admin] Erro em query oficinas:', query, error)
+      }
+    }
+
+    return { data: [], error: new Error('Falha em todas as queries de oficinas') }
   }
 
-  state.oficinas = oficinasRes.data || []
-  state.osByOficina = buildOSStats(osRes.data || [])
-  state.clientesByOficina = aggregateByOficina(clientesRes.data || [])
-  state.usuariosByOficina = aggregateByOficina(usuariosRes.data || [])
+  try {
+    const [oficinasRes, osRes, clientesRes, usuariosRes] = await Promise.all([
+      fetchOficinas(),
+      supabase.from('ordens_servico').select('oficina_id, status, valor_total, created_at'),
+      supabase.from('clientes').select('oficina_id'),
+      supabase.from('usuarios').select('oficina_id')
+    ])
 
-  renderAll()
+    if (oficinasRes.error) {
+      state.oficinas = []
+      state.osByOficina = new Map()
+      state.clientesByOficina = new Map()
+      state.usuariosByOficina = new Map()
+      renderAll()
+      showFeedback('Nao foi possivel carregar oficinas no momento.', 'warning')
+      return
+    }
+
+    state.oficinas = oficinasRes.data || []
+    state.osByOficina = osRes.error ? new Map() : buildOSStats(osRes.data || [])
+    state.clientesByOficina = clientesRes.error ? new Map() : aggregateByOficina(clientesRes.data || [])
+    state.usuariosByOficina = usuariosRes.error ? new Map() : aggregateByOficina(usuariosRes.data || [])
+
+    if (osRes.error || clientesRes.error || usuariosRes.error) {
+      showFeedback('Alguns dados do painel nao puderam ser carregados.', 'warning')
+    }
+
+    renderAll()
+  } catch (error) {
+    console.log('[admin] Erro inesperado ao carregar painel:', error)
+    state.oficinas = []
+    state.osByOficina = new Map()
+    state.clientesByOficina = new Map()
+    state.usuariosByOficina = new Map()
+    renderAll()
+    showFeedback('Nao foi possivel carregar o painel no momento.', 'warning')
+  }
 }
 
 async function updatePlano(oficinaId, plano) {
