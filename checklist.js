@@ -35,26 +35,24 @@ function _sb() { return window._supabase || window.supabase; }
 function setAbaAtiva(aba) { ChecklistState.abaAtiva = aba; }
 function getAbaAtiva() { return ChecklistState.abaAtiva || 'pecas'; }
 
-// WhatsApp icon como PNG via canvas — robusto
+// WA icon PNG gerado via canvas (path limpo, sem bezier)
 function getWAIconPNG() {
     var c = document.createElement('canvas');
     c.width = 64; c.height = 64;
     var ctx = c.getContext('2d');
-    // fundo verde circulo
+    ctx.clearRect(0, 0, 64, 64);
+    // circulo verde
     ctx.fillStyle = '#25D366';
-    ctx.beginPath(); ctx.arc(32,32,32,0,Math.PI*2); ctx.fill();
-    // balao branco (path simplificado)
+    ctx.beginPath(); ctx.arc(32, 32, 32, 0, Math.PI * 2); ctx.fill();
+    // circulo branco
     ctx.fillStyle = '#FFFFFF';
-    ctx.beginPath();
-    ctx.moveTo(32,10);
-    ctx.arc(32,32,22,0,Math.PI*2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(32, 32, 22, 0, Math.PI * 2); ctx.fill();
     // circulo verde interno
     ctx.fillStyle = '#25D366';
-    ctx.beginPath(); ctx.arc(32,32,16,0,Math.PI*2); ctx.fill();
-    // telefone branco
+    ctx.beginPath(); ctx.arc(32, 32, 16, 0, Math.PI * 2); ctx.fill();
+    // simbolo de telefone
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 22px Arial';
+    ctx.font = 'bold 20px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('\u260E', 32, 33);
@@ -147,7 +145,7 @@ function preencherFormularioChecklist() {
     s('checklistClienteCPF',   cliente ? cliente.cpf    : (c.cliente_cpf   || c.clienteCPF));
     s('checklistVeiculoPlaca', veiculo ? veiculo.placa  : (c.veiculo_placa || c.veiculoPlaca));
     s('checklistVeiculoModelo',veiculo ? veiculo.modelo : (c.veiculo_modelo|| c.veiculoModelo));
-    s('hodometro',   c.hodometro); s('observacoes', c.observacoes);
+    s('hodometro', c.hodometro); s('observacoes', c.observacoes);
     var nc = document.getElementById('nivelCombustivel');
     var nivel = c.nivel_combustivel !== undefined ? c.nivel_combustivel : c.nivelCombustivel;
     if (nc && typeof nivel === 'number') nc.value = nivel;
@@ -501,16 +499,28 @@ async function gerarPDF() {
     function hexToRgb(hex){return[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];}
     const corRgb = hexToRgb(corPrimaria);
 
+    // --- LOGO: carrega com fallback garantido ---
     async function getLogoBase64(){
-        const logoSrc=(!oficina.logo||oficina.logo.indexOf('via.placeholder.com')!==-1)?'logo-default.png':oficina.logo;
-        if(logoSrc.startsWith('data:'))return logoSrc;
-        try{const blob=await(await fetch(logoSrc)).blob();return await new Promise(r=>{var fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(blob);});}
-        catch(e){try{const blob=await(await fetch('logo-default.png')).blob();return await new Promise(r=>{var fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(blob);});}catch(e2){return '';}}
+        const src = oficina.logo && !oficina.logo.includes('via.placeholder') && !oficina.logo.includes('logo-default')
+            ? oficina.logo : 'logo-default.png';
+        if (src.startsWith('data:')) return src;
+        // tenta carregar via fetch
+        for (const url of [src, 'logo-default.png']) {
+            try {
+                const res = await fetch(url, { cache: 'force-cache' });
+                if (!res.ok) continue;
+                const blob = await res.blob();
+                const b64 = await new Promise(r => { var fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(blob); });
+                if (b64 && b64.length > 100) return b64;
+            } catch(e) { /* tenta proximo */ }
+        }
+        return '';
     }
     var logoBase64 = await getLogoBase64();
 
-    // WA icon: PNG via canvas garantido
+    // --- WA ICON: gerado UMA vez, alias unico por sessao ---
     var waIconData = getWAIconPNG();
+    var waAlias = 'WA' + Date.now(); // alias unico evita cache corrompido entre paginas
 
     function gv(id){var el=document.getElementById(id);return el?el.value.trim():'';}
     var osNum       = (document.getElementById('checklistNumeroOS')?document.getElementById('checklistNumeroOS').textContent.trim():'')||'SEM-OS';
@@ -539,57 +549,102 @@ async function gerarPDF() {
 
     var PAGE_W=210,MARGIN=12,CX=22,CW=166,CT=44,CB=268;
     var GAP=4,COL_W=(CW-GAP)/2,XP=CX,XS=CX+COL_W+GAP;
+    var logoAlias = 'LOGO' + Date.now();
 
     function drawBase(){doc.setDrawColor(210,210,210);doc.rect(MARGIN,10,PAGE_W-MARGIN*2,277);}
 
+    // =============================================
+    // HEADER CORRIGIDO
+    // Layout:
+    //  [LOGO 20x14]  NOME OFICINA (bold)
+    //                ENDERECO
+    //                [WA] TEL1  [WA] TEL2   <- lado a lado na mesma linha
+    //                CNPJ
+    //                             ORDEM DE SERVICO
+    //                             OS-NUMERO (cor oficina)
+    // =============================================
     function drawHeader(){
-        doc.setDrawColor(225,225,225);doc.line(22,17,188,17);
-        doc.setFillColor(255,255,255);doc.setDrawColor(225,225,225);doc.roundedRect(22,22,20,14,1,1,'FD');
-        if(logoBase64&&/^data:image\//.test(logoBase64)){
-            var lf=logoBase64.indexOf('image/jpeg')!==-1||logoBase64.indexOf('image/jpg')!==-1?'JPEG':'PNG';
-            try{doc.addImage(logoBase64,lf,22.8,22.8,18.4,12.4,undefined,'FAST');}catch(e){}
+        doc.setDrawColor(225,225,225);
+        doc.line(22,17,188,17);
+
+        // caixa logo
+        doc.setFillColor(255,255,255);
+        doc.setDrawColor(225,225,225);
+        doc.roundedRect(22,22,20,14,1,1,'FD');
+
+        // logo
+        if (logoBase64 && /^data:image\//.test(logoBase64)) {
+            var lf = /jpeg|jpg/.test(logoBase64) ? 'JPEG' : 'PNG';
+            try { doc.addImage(logoBase64, lf, 22.8, 22.8, 18.4, 12.4, logoAlias, 'FAST'); } catch(e) {}
         } else {
-            doc.setFont('helvetica','bold');doc.setTextColor(205,25,25);doc.setFontSize(8);doc.text('LOGO',32,30,{align:'center'});
+            doc.setFont('helvetica','bold'); doc.setTextColor(150,150,150); doc.setFontSize(7);
+            doc.text('LOGO', 32, 30, {align:'center'});
         }
-        doc.setFontSize(10.5);doc.setTextColor(0,0,0);doc.setFont('helvetica','bold');doc.text(oficina.nome,45,25);
-        doc.setTextColor(110,110,110);doc.setFont('helvetica','normal');doc.setFontSize(6.3);
-        if(oficina.endereco) doc.text(oficina.endereco,45,29);
 
-        // Telefone 1
+        // nome da oficina
+        doc.setFont('helvetica','bold'); doc.setTextColor(30,30,30); doc.setFontSize(10.5);
+        doc.text(oficina.nome || 'OFICINA', 45, 25);
+
+        // endereco
+        doc.setFont('helvetica','normal'); doc.setTextColor(110,110,110); doc.setFontSize(6.3);
+        if (oficina.endereco) doc.text(oficina.endereco, 45, 29);
+
+        // --- Telefones LADO A LADO na mesma linha Y=33 ---
+        var telX = 45;
         var telY = 33;
-        if(oficina.telefone){
-            if(oficina.telefoneWA){
-                try{doc.addImage(waIconData,'PNG',45,telY-2.8,3,3,undefined,'WAI1');}catch(e){}
-                doc.text(oficina.telefone,49.5,telY);
+        doc.setFontSize(6.3);
+
+        if (oficina.telefone) {
+            if (oficina.telefoneWA && waIconData) {
+                try { doc.addImage(waIconData, 'PNG', telX, telY - 2.6, 3, 3, waAlias + 'A', 'FAST'); } catch(e){}
+                doc.text(oficina.telefone, telX + 3.8, telY);
+                telX += 3.8 + doc.getTextWidth(oficina.telefone) + 4;
             } else {
-                doc.text('Tel: '+oficina.telefone,45,telY);
-            }
-        }
-        // Telefone 2
-        if(oficina.telefone2){
-            var tel2Y = telY + 3.5;
-            if(oficina.telefone2WA){
-                try{doc.addImage(waIconData,'PNG',45,tel2Y-2.8,3,3,undefined,'WAI2');}catch(e){}
-                doc.text(oficina.telefone2,49.5,tel2Y);
-            } else {
-                doc.text('Tel: '+oficina.telefone2,45,tel2Y);
+                doc.text(oficina.telefone, telX, telY);
+                telX += doc.getTextWidth(oficina.telefone) + 4;
             }
         }
 
-        doc.text('CNPJ: '+oficina.cnpj,45,oficina.telefone2?40:37);
-        doc.setFont('helvetica','bold');doc.setTextColor(120,120,120);doc.setFontSize(6.4);doc.text('ORDEM DE SERVICO',188,31,{align:'right'});
-        doc.setTextColor(205,25,25);doc.setFontSize(12);doc.text(osNum,188,36.5,{align:'right'});
-        doc.setDrawColor(corRgb[0],corRgb[1],corRgb[2]);doc.setLineWidth(0.7);doc.line(22,40.5,188,40.5);doc.setLineWidth(0.2);
+        if (oficina.telefone2) {
+            // separador
+            doc.setTextColor(180,180,180);
+            doc.text('|', telX - 2, telY);
+            doc.setTextColor(110,110,110);
+            if (oficina.telefone2WA && waIconData) {
+                try { doc.addImage(waIconData, 'PNG', telX, telY - 2.6, 3, 3, waAlias + 'B', 'FAST'); } catch(e){}
+                doc.text(oficina.telefone2, telX + 3.8, telY);
+            } else {
+                doc.text(oficina.telefone2, telX, telY);
+            }
+        }
+
+        // CNPJ na linha abaixo dos telefones
+        doc.setTextColor(110,110,110); doc.setFontSize(6.3);
+        doc.text('CNPJ: ' + (oficina.cnpj || ''), 45, 37);
+
+        // --- lado direito: ORDEM DE SERVICO + numero ---
+        doc.setFont('helvetica','bold'); doc.setTextColor(120,120,120); doc.setFontSize(6.4);
+        doc.text('ORDEM DE SERVICO', 188, 28, {align:'right'});
+
+        // numero OS com COR DA OFICINA (nao mais vermelho fixo)
+        doc.setTextColor(corRgb[0], corRgb[1], corRgb[2]); doc.setFontSize(12);
+        doc.text(osNum, 188, 34, {align:'right'});
+
+        // linha separadora colorida
+        doc.setDrawColor(corRgb[0],corRgb[1],corRgb[2]); doc.setLineWidth(0.7);
+        doc.line(22, 40.5, 188, 40.5);
+        doc.setLineWidth(0.2);
     }
 
     function drawFooter(comAssin){
         if(comAssin){
             doc.setDrawColor(190,190,190);doc.line(22,248,188,248);
             doc.setDrawColor(160,160,160);doc.line(22,260,95,260);doc.line(115,260,188,260);
-            if(assinCli)try{doc.addImage(assinCli,'PNG',27,248,62,11,undefined,'ASSC');}catch(e){}
-            if(assinTec)try{doc.addImage(assinTec,'PNG',120,248,62,11,undefined,'ASST');}catch(e){}
+            if(assinCli)try{doc.addImage(assinCli,'PNG',27,248,62,11,'ASSC','FAST');}catch(e){}
+            if(assinTec)try{doc.addImage(assinTec,'PNG',120,248,62,11,'ASST','FAST');}catch(e){}
             doc.setFont('helvetica','normal');doc.setTextColor(140,140,140);doc.setFontSize(5.6);
-            doc.text('ASSINATURA DO CLIENTE',55,264,{align:'center'});doc.text('ASSINATURA DO TECNICO',155,264,{align:'center'});
+            doc.text('ASSINATURA DO CLIENTE',55,264,{align:'center'});
+            doc.text('ASSINATURA DO TECNICO',155,264,{align:'center'});
         }
         doc.setDrawColor(190,190,190);doc.line(22,270,188,270);
         doc.setFont('helvetica','normal');doc.setTextColor(140,140,140);doc.setFontSize(5.6);
@@ -654,7 +709,7 @@ async function gerarPDF() {
     }
 
     // PAG 1
-    drawBase();drawHeader();
+    drawBase(); drawHeader();
     var combustoStr=(combustTipos.join('/')||'Combustivel')+'('+combustNivel+'/8)';
     drawBox(22,44,82,20,'CLIENTE',['NOME: '+clienteNome,'CPF/CNPJ: '+cpf+'  |  TEL: '+(telCliente||'Nao informado')]);
     drawBox(107,44,81,20,'VEICULO',[modelo+' '+placa,'KM: '+hodometro+'  |  '+combustoStr,'CHASSI: '+chassis]);
@@ -666,8 +721,8 @@ async function gerarPDF() {
     for(var fi=0;fi<fotos.length;fi++) fotosComp.push({nome:fotos[fi].nome,url:await compressPhoto(fotos[fi].url)});
     drawBox(22,135,166,100,'FOTOS DO VEICULO',[]);
     if(fotosComp.length>0){
-        fotosComp.slice(0,3).forEach((f,i)=>{var fx=24+i*53,fy=143;doc.roundedRect(fx,fy,51,36,1,1);try{doc.addImage(f.url,'JPEG',fx+0.5,fy+0.5,50,35,undefined,'FAST');}catch(e){}});
-        fotosComp.slice(3,9).forEach((f,i)=>{var fx=24+i*27.2,fy=182;doc.roundedRect(fx,fy,25,18,1,1);try{doc.addImage(f.url,'JPEG',fx+0.5,fy+0.5,24,17,undefined,'FAST');}catch(e){}});
+        fotosComp.slice(0,3).forEach((f,i)=>{var fx=24+i*53,fy=143;doc.roundedRect(fx,fy,51,36,1,1);try{doc.addImage(f.url,'JPEG',fx+0.5,fy+0.5,50,35,'F'+i,'FAST');}catch(e){}});
+        fotosComp.slice(3,9).forEach((f,i)=>{var fx=24+i*27.2,fy=182;doc.roundedRect(fx,fy,25,18,1,1);try{doc.addImage(f.url,'JPEG',fx+0.5,fy+0.5,24,17,'F'+(i+3),'FAST');}catch(e){}});
     }
     drawFooter(true);
 
@@ -679,7 +734,7 @@ async function gerarPDF() {
     var headSty={fillColor:corRgb,textColor:255,fontStyle:'bold',fontSize:7};
     var footSty={fillColor:corRgb,textColor:255,fontStyle:'bold',fontSize:8};
 
-    doc.addPage();drawBase();drawHeader();
+    doc.addPage(); drawBase(); drawHeader();
     doc.autoTable({head:[['PECAS','VALOR']],body:pecas.map(p=>[p.descricao,fmtCur(p.valor)]),foot:[['TOTAL PECAS',fmtCur(totalPec)]],startY:CT,margin:{left:XP,right:PAGE_W-XP-COL_W},tableWidth:COL_W,showFoot:'lastPage',showHead:'everyPage',rowPageBreak:'avoid',styles:atStyles,headStyles:headSty,footStyles:footSty,columnStyles:{0:{cellWidth:COL_W*0.65},1:{cellWidth:COL_W*0.35,halign:'right'}},didDrawPage:()=>{drawBase();drawHeader();drawFooter(false);}});
     var finalYPec=doc.lastAutoTable.finalY;
     doc.autoTable({head:[['SERVICOS','VALOR']],body:servicos.map(s=>[s.descricao,fmtCur(s.valor)]),foot:[['TOTAL SERVICOS',fmtCur(totalSrv)]],startY:CT,margin:{left:XS,right:PAGE_W-XS-COL_W},tableWidth:COL_W,showFoot:'lastPage',showHead:'everyPage',rowPageBreak:'avoid',styles:atStyles,headStyles:headSty,footStyles:footSty,columnStyles:{0:{cellWidth:COL_W*0.65},1:{cellWidth:COL_W*0.35,halign:'right'}},didDrawPage:()=>{drawBase();drawHeader();drawFooter(false);}});
