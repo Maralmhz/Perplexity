@@ -1,11 +1,6 @@
 // ============================================
 // GESTAO DE CLIENTES — Supabase
 // ============================================
-const _supabaseClientes = window._supabase || (() => {
-    const { createClient } = window.supabaseJs || {};
-    return null;
-})();
-
 async function _getSupabase() {
     if (window._supabase) return window._supabase;
     const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm');
@@ -14,6 +9,10 @@ async function _getSupabase() {
         'sb_publishable_Af0DdLvEB9NuDE69aIPr_w_3a55KPLk'
     );
     return window._supabase;
+}
+
+function _getOficinaId() {
+    return window.AppState?.user?.oficina_id || null;
 }
 
 let editingClienteId = null;
@@ -59,7 +58,7 @@ function renderClientes() {
 function openClienteModal(clienteId = null) {
     const modal = document.getElementById('clienteModal') || document.getElementById('modalCliente');
     const title = document.getElementById('clienteModalTitle') || document.getElementById('modalClienteTitle');
-    const form = document.getElementById('clienteForm') || document.getElementById('formCliente');
+    const form  = document.getElementById('clienteForm')  || document.getElementById('formCliente');
     const cpfInput = document.getElementById('clienteCPF') || document.getElementById('clienteCpf');
 
     if (!modal || !title || !form || !cpfInput) return;
@@ -69,10 +68,10 @@ function openClienteModal(clienteId = null) {
         const cliente = AppState.data.clientes.find(c => c.id === clienteId);
         if (cliente) {
             title.textContent = 'Editar Cliente';
-            document.getElementById('clienteNome').value = cliente.nome || '';
-            cpfInput.value = cliente.cpf || '';
+            document.getElementById('clienteNome').value     = cliente.nome     || '';
+            cpfInput.value                                    = cliente.cpf      || '';
             document.getElementById('clienteTelefone').value = cliente.telefone || '';
-            document.getElementById('clienteEmail').value = cliente.email || '';
+            document.getElementById('clienteEmail').value    = cliente.email    || '';
             document.getElementById('clienteEndereco').value = cliente.endereco || '';
         }
     } else {
@@ -80,15 +79,14 @@ function openClienteModal(clienteId = null) {
         title.textContent = 'Novo Cliente';
         form.reset();
     }
-
     modal.classList.add('active');
 }
 
 function closeClienteModal() {
     const modal = document.getElementById('clienteModal') || document.getElementById('modalCliente');
-    const form = document.getElementById('clienteForm') || document.getElementById('formCliente');
+    const form  = document.getElementById('clienteForm')  || document.getElementById('formCliente');
     if (modal) modal.classList.remove('active');
-    if (form) form.reset();
+    if (form)  form.reset();
     editingClienteId = null;
 }
 
@@ -100,11 +98,11 @@ async function saveCliente(event) {
     const cpfInput = document.getElementById('clienteCPF') || document.getElementById('clienteCpf');
 
     const clienteData = {
-        nome: document.getElementById('clienteNome').value,
-        cpf: cpfInput ? cpfInput.value : '',
-        telefone: document.getElementById('clienteTelefone').value,
-        email: document.getElementById('clienteEmail').value,
-        endereco: document.getElementById('clienteEndereco').value
+        nome:      document.getElementById('clienteNome').value,
+        cpf:       cpfInput ? cpfInput.value : '',
+        telefone:  document.getElementById('clienteTelefone').value,
+        email:     document.getElementById('clienteEmail').value,
+        endereco:  document.getElementById('clienteEndereco').value
     };
 
     const sb = await _getSupabase();
@@ -116,7 +114,8 @@ async function saveCliente(event) {
         if (idx !== -1) AppState.data.clientes[idx] = { ...AppState.data.clientes[idx], ...clienteData };
         showToast('Cliente atualizado com sucesso!', 'success');
     } else {
-        const { data, error } = await sb.from('clientes').insert(clienteData).select().single();
+        const oficina_id = _getOficinaId();
+        const { data, error } = await sb.from('clientes').insert({ ...clienteData, oficina_id }).select().single();
         if (error) { showToast('Erro ao cadastrar cliente!', 'error'); console.error(error); return; }
         AppState.data.clientes.push(data);
         showToast('Cliente cadastrado com sucesso!', 'success');
@@ -133,9 +132,7 @@ function salvarCliente() {
     saveCliente();
 }
 
-function editCliente(id) {
-    openClienteModal(id);
-}
+function editCliente(id) { openClienteModal(id); }
 
 // ============================================
 // EXCLUIR
@@ -165,7 +162,6 @@ function filterClientes() {
     const searchTerm = document.getElementById('searchClientes').value.toLowerCase();
     const rows = document.querySelectorAll('#clientesTableBody tr');
     rows.forEach(row => {
-        const text = row.textContent.toLowerCase();
-        row.style.display = text.includes(searchTerm) ? '' : 'none';
+        row.style.display = row.textContent.toLowerCase().includes(searchTerm) ? '' : 'none';
     });
 }
