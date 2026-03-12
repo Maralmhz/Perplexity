@@ -150,6 +150,76 @@ function saveToLocalStorage() {}
 function loadFromLocalStorage() {}
 
 // ============================================
+// ONBOARDING: verificar status da oficina
+// Bloqueia apenas se status existir E for 'pendente' ou 'rejeitado'.
+// Oficinas sem o campo status (existentes) nao sao bloqueadas.
+// ============================================
+function verificarStatusOficina(oficina) {
+    if (!oficina) return; // sem dados = nao bloquear
+    const status = oficina.status;
+    if (!status || status === 'aprovado') return; // campo inexistente ou aprovado = ok
+
+    const appRoot = document.getElementById('app') ||
+                    document.querySelector('.app-container') ||
+                    document.querySelector('.sidebar') ||
+                    document.body;
+
+    // Esconde o app inteiro
+    document.querySelectorAll('.sidebar, .main-content, #app, .app-container').forEach(el => {
+        el.style.display = 'none';
+    });
+
+    // Remove overlay anterior se existir
+    document.getElementById('_onboarding_block')?.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = '_onboarding_block';
+    Object.assign(overlay.style, {
+        position: 'fixed',
+        inset: '0',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#1a1a2e',
+        zIndex: '99999',
+        flexDirection: 'column',
+        gap: '16px',
+        padding: '32px',
+        textAlign: 'center'
+    });
+
+    if (status === 'pendente') {
+        overlay.innerHTML = `
+            <div style="font-size:3rem;">⏳</div>
+            <h2 style="color:#ffd970;font-size:1.4rem;font-weight:700;">Cadastro em an\u00e1lise</h2>
+            <p style="color:#ccc;max-width:420px;line-height:1.6;">
+                Sua oficina est\u00e1 aguardando aprova\u00e7\u00e3o.<br>
+                Em breve voc\u00ea receber\u00e1 uma confirma\u00e7\u00e3o.
+            </p>
+            <button onclick="(async()=>{await window.supabase?.auth.signOut();window.location.href='login.html';})()" 
+                style="margin-top:12px;padding:10px 28px;background:#27ae60;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;">
+                Sair
+            </button>
+        `;
+    } else if (status === 'rejeitado') {
+        overlay.innerHTML = `
+            <div style="font-size:3rem;">\u274c</div>
+            <h2 style="color:#ff7b7b;font-size:1.4rem;font-weight:700;">Cadastro rejeitado</h2>
+            <p style="color:#ccc;max-width:420px;line-height:1.6;">
+                Seu cadastro foi rejeitado.<br>
+                Entre em contato com o suporte para mais informa\u00e7\u00f5es.
+            </p>
+            <button onclick="(async()=>{await window.supabase?.auth.signOut();window.location.href='login.html';})()" 
+                style="margin-top:12px;padding:10px 28px;background:#c0392b;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;">
+                Sair
+            </button>
+        `;
+    }
+
+    document.body.appendChild(overlay);
+}
+
+// ============================================
 // INICIALIZACAO
 // ============================================
 async function initApp() {
@@ -162,11 +232,20 @@ async function initApp() {
     }
 
     // Carrega oficina no boot para logo, cor e nome aparecerem imediatamente
+    // e para verificar o status de onboarding
     if (typeof carregarOficinaDoDB === 'function') {
         try {
             const oficina = await carregarOficinaDoDB();
-            if (oficina && typeof aplicarWhiteLabel === 'function') {
-                aplicarWhiteLabel(oficina);
+            if (oficina) {
+                if (typeof aplicarWhiteLabel === 'function') {
+                    aplicarWhiteLabel(oficina);
+                }
+                // PR-07: verificar status da oficina antes de continuar
+                verificarStatusOficina(oficina);
+                // Se a oficina esta bloqueada, a funcao acima ja exibiu a tela de bloqueio.
+                // Retornamos para nao carregar o restante do app.
+                const status = oficina.status;
+                if (status && status !== 'aprovado') return;
             }
         } catch(e) {
             console.warn('Nao foi possivel carregar oficina no boot:', e);
