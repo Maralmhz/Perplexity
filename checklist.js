@@ -36,96 +36,113 @@ function setAbaAtiva(aba) { ChecklistState.abaAtiva = aba; }
 function getAbaAtiva() { return ChecklistState.abaAtiva || 'pecas'; }
 
 // ============================================
-// WA ICON — canvas limpo, proporcional, bonito
+// WA ICON — canvas simples, sem Path2D
+// Circulo verde + handset desenhado com primitivas
 // ============================================
 function getWAIconPNG() {
-    var S = 128;
+    var S = 256;
     var c = document.createElement('canvas');
     c.width = S; c.height = S;
     var ctx = c.getContext('2d');
-    var cx = S / 2, cy = S / 2, r = S / 2 - 2;
 
-    // sombra suave
-    ctx.shadowColor = 'rgba(0,0,0,0.18)';
-    ctx.shadowBlur = 6;
+    // fundo transparente
+    ctx.clearRect(0, 0, S, S);
 
     // circulo verde
     ctx.fillStyle = '#25D366';
-    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
-    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.arc(S/2, S/2, S/2, 0, Math.PI * 2);
+    ctx.fill();
 
-    // handset branco (desenhado com paths geometricos limpos)
-    ctx.fillStyle = '#FFFFFF';
+    // desenhar handset branco usando save/restore + rotacao
     ctx.save();
-    ctx.translate(cx, cy);
-    ctx.scale(0.62, 0.62);
+    ctx.translate(S/2, S/2);
+    ctx.rotate(Math.PI * 0.2); // inclina levemente como o icone do WA
+    ctx.fillStyle = '#FFFFFF';
 
-    // corpo do handset via path SVG-like
-    var p = new Path2D(
-        'M -28 -44 ' +
-        'C -42 -44 -52 -34 -52 -20 ' +
-        'C -52 8 -38 34 -14 50 ' +
-        'C 10 66 38 72 52 60 ' +
-        'L 52 44 ' +
-        'C 52 38 46 34 40 36 ' +
-        'L 24 42 ' +
-        'C 20 44 16 42 14 38 ' +
-        'C 8 28 4 16 4 4 ' +
-        'C 4 -1 8 -6 12 -8 ' +
-        'L 28 -16 ' +
-        'C 34 -18 38 -24 36 -30 ' +
-        'L 28 -46 ' +
-        'C 26 -52 20 -54 14 -52 ' +
-        'C 2 -48 -12 -46 -28 -44 Z'
-    );
-    ctx.fill(p);
+    // corpo do handset: dois retangulos arredondados (parte de cima e baixo)
+    // e um traco curvo no meio
+    var R = S * 0.30; // raio de trabalho
+
+    // parte superior (ouvido)
+    ctx.beginPath();
+    roundRect(ctx, -R*0.45, -R*0.95, R*0.45, R*0.30, R*0.12);
+    ctx.fill();
+
+    // parte inferior (boca)
+    ctx.beginPath();
+    roundRect(ctx, R*0.02, R*0.64, R*0.45, R*0.30, R*0.12);
+    ctx.fill();
+
+    // corpo central (arco curvo)
+    ctx.lineWidth = R * 0.36;
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.arc(0, 0, R * 0.72, Math.PI * 0.55, Math.PI * 1.05, false);
+    ctx.stroke();
+
     ctx.restore();
-
     return c.toDataURL('image/png');
 }
 
+// helper: retangulo arredondado sem Path2D
+function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+}
+
 // ============================================
-// LOGO — carrega via Image tag + canvas (sem CORS/fetch)
+// LOGO — estrategia em camadas
+// 1. Se AppState.oficina.logo ja e base64 -> usa direto
+// 2. Se e URL -> tenta carregar via Image tag
+// 3. Fallback para logo-default.png
 // ============================================
-function loadImageToBase64(src) {
+function _imgToBase64(src) {
     return new Promise(function(resolve) {
         var img = new Image();
         img.crossOrigin = 'anonymous';
         img.onload = function() {
             try {
                 var canvas = document.createElement('canvas');
-                canvas.width = img.naturalWidth || img.width;
-                canvas.height = img.naturalHeight || img.height;
+                canvas.width  = img.naturalWidth  || img.width  || 200;
+                canvas.height = img.naturalHeight || img.height || 200;
                 canvas.getContext('2d').drawImage(img, 0, 0);
                 var b64 = canvas.toDataURL('image/png');
                 resolve(b64 && b64.length > 200 ? b64 : null);
             } catch(e) { resolve(null); }
         };
         img.onerror = function() { resolve(null); };
-        // cache bust para garantir reload
-        img.src = src + (src.indexOf('?') === -1 ? '?_=' : '&_=') + Date.now();
+        img.src = src + (src.indexOf('?') < 0 ? '?_cb=' : '&_cb=') + Date.now();
     });
 }
 
 async function getLogoBase64(oficina) {
-    // 1. se ja e base64, usa direto
-    if (oficina.logo && oficina.logo.startsWith('data:image')) return oficina.logo;
+    var logo = (oficina && oficina.logo) ? oficina.logo.trim() : '';
 
-    // 2. tenta logo da oficina (URL ou path)
-    var logoSrc = (oficina.logo && !oficina.logo.includes('via.placeholder') && oficina.logo.trim() !== '')
-        ? oficina.logo : null;
+    // ja e base64 — usa direto, zero conversao
+    if (logo.startsWith('data:image')) return logo;
 
-    if (logoSrc) {
-        var b64 = await loadImageToBase64(logoSrc);
-        if (b64) return b64;
+    // e uma URL valida — tenta converter via canvas
+    if (logo && logo.length > 4 && !logo.includes('via.placeholder')) {
+        var fromUrl = await _imgToBase64(logo);
+        if (fromUrl) return fromUrl;
     }
 
-    // 3. fallback: logo-default.png (relativo ao HTML)
-    var def = await loadImageToBase64('logo-default.png');
-    if (def) return def;
+    // fallback: logo-default.png relativo ao HTML
+    var fromDefault = await _imgToBase64('logo-default.png');
+    if (fromDefault) return fromDefault;
 
-    // 4. sem logo
-    return null;
+    return null; // sem logo
 }
 
 // ============================================
@@ -568,12 +585,12 @@ async function gerarPDF() {
     function hexToRgb(hex){return[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];}
     const corRgb = hexToRgb(corPrimaria);
 
-    // logo via img+canvas (sem fetch, sem CORS)
+    // LOGO: base64 direto ou conversao via canvas
     var logoBase64 = await getLogoBase64(oficina);
 
-    // WA icon limpo
+    // WA icon
     var waIconData = getWAIconPNG();
-    var _waIdx = 0; // contador de alias unicos
+    var _waIdx = 0;
     function nextWaAlias() { return 'WA' + Date.now() + (_waIdx++); }
 
     function gv(id){var el=document.getElementById(id);return el?el.value.trim():'';}
@@ -607,9 +624,6 @@ async function gerarPDF() {
 
     function drawBase(){doc.setDrawColor(210,210,210);doc.rect(MARGIN,10,PAGE_W-MARGIN*2,277);}
 
-    // ============================================================
-    // HEADER
-    // ============================================================
     function drawHeader(){
         doc.setDrawColor(225,225,225);
         doc.line(22,17,188,17);
@@ -620,9 +634,11 @@ async function gerarPDF() {
         doc.roundedRect(22, 22, 20, 14, 1, 1, 'FD');
 
         // logo
-        if (logoBase64 && /^data:image\//.test(logoBase64)) {
-            var lf = /jpeg|jpg/.test(logoBase64) ? 'JPEG' : 'PNG';
-            try { doc.addImage(logoBase64, lf, 22.8, 22.8, 18.4, 12.4, logoAlias, 'FAST'); } catch(e) {}
+        if (logoBase64 && logoBase64.startsWith('data:image')) {
+            var lf = logoBase64.indexOf('jpeg') >= 0 || logoBase64.indexOf('jpg') >= 0 ? 'JPEG' : 'PNG';
+            try { doc.addImage(logoBase64, lf, 22.8, 22.8, 18.4, 12.4, logoAlias, 'FAST'); } catch(e) {
+                console.warn('addImage logo erro:', e);
+            }
         } else {
             doc.setFont('helvetica','normal'); doc.setTextColor(160,160,160); doc.setFontSize(6);
             doc.text('LOGO', 32, 30, {align:'center'});
@@ -636,29 +652,26 @@ async function gerarPDF() {
         doc.setFont('helvetica','normal'); doc.setTextColor(110,110,110); doc.setFontSize(6.3);
         if (oficina.endereco) doc.text(oficina.endereco, 45, 29);
 
-        // --- telefones lado a lado, Y=33 ---
-        var telX = 45;
-        var telY = 33;
+        // telefones lado a lado, Y=33
+        var telX = 45, telY = 33;
         doc.setFontSize(6.3); doc.setTextColor(80,80,80);
 
         if (oficina.telefone) {
             if (oficina.telefoneWA && waIconData) {
-                try { doc.addImage(waIconData, 'PNG', telX, telY - 2.7, 3.2, 3.2, nextWaAlias(), 'FAST'); } catch(e){}
-                doc.text(oficina.telefone, telX + 3.8, telY);
+                try { doc.addImage(waIconData, 'PNG', telX, telY-2.7, 3.2, 3.2, nextWaAlias(), 'FAST'); } catch(e){}
+                doc.text(oficina.telefone, telX+3.8, telY);
                 telX += 3.8 + doc.getTextWidth(oficina.telefone) + 3;
             } else {
                 doc.text(oficina.telefone, telX, telY);
                 telX += doc.getTextWidth(oficina.telefone) + 3;
             }
         }
-
         if (oficina.telefone2) {
-            doc.setTextColor(200,200,200); doc.text('|', telX, telY);
-            telX += doc.getTextWidth('|') + 2;
+            doc.setTextColor(200,200,200); doc.text('|', telX, telY); telX += doc.getTextWidth('|') + 2;
             doc.setTextColor(80,80,80);
             if (oficina.telefone2WA && waIconData) {
-                try { doc.addImage(waIconData, 'PNG', telX, telY - 2.7, 3.2, 3.2, nextWaAlias(), 'FAST'); } catch(e){}
-                doc.text(oficina.telefone2, telX + 3.8, telY);
+                try { doc.addImage(waIconData, 'PNG', telX, telY-2.7, 3.2, 3.2, nextWaAlias(), 'FAST'); } catch(e){}
+                doc.text(oficina.telefone2, telX+3.8, telY);
             } else {
                 doc.text(oficina.telefone2, telX, telY);
             }
@@ -666,17 +679,16 @@ async function gerarPDF() {
 
         // CNPJ
         doc.setTextColor(110,110,110); doc.setFontSize(6.3);
-        doc.text('CNPJ: ' + (oficina.cnpj || ''), 45, 37);
+        doc.text('CNPJ: '+(oficina.cnpj||''), 45, 37);
 
         // lado direito
         doc.setFont('helvetica','bold'); doc.setTextColor(140,140,140); doc.setFontSize(6.4);
         doc.text('ORDEM DE SERVICO', 188, 28, {align:'right'});
-        doc.setTextColor(corRgb[0], corRgb[1], corRgb[2]); doc.setFontSize(12);
+        doc.setTextColor(corRgb[0],corRgb[1],corRgb[2]); doc.setFontSize(12);
         doc.text(osNum, 188, 34, {align:'right'});
 
-        // linha separadora
         doc.setDrawColor(corRgb[0],corRgb[1],corRgb[2]); doc.setLineWidth(0.7);
-        doc.line(22, 40.5, 188, 40.5);
+        doc.line(22,40.5,188,40.5);
         doc.setLineWidth(0.2);
     }
 
