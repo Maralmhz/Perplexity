@@ -135,6 +135,14 @@ function _normalizeIconBase64(srcBase64, size) {
     });
 }
 
+async function _normalizeLogoForPDF(srcBase64) {
+    if (!srcBase64 || !srcBase64.startsWith('data:image')) return null;
+    var isRaster = srcBase64.indexOf('data:image/png') === 0 || srcBase64.indexOf('data:image/jpeg') === 0 || srcBase64.indexOf('data:image/jpg') === 0;
+    if (isRaster) return srcBase64;
+    var normalized = await _imgToBase64(srcBase64);
+    return normalized || null;
+}
+
 async function getWAIconBase64() {
     var waSvg = await fetchBase64ViaXHR('whatsapp.svg');
     if (waSvg) {
@@ -157,13 +165,19 @@ async function getLogoBase64(oficina) {
     if (oficina) rawLogo = (oficina.logo || oficina.logo_url || '').trim();
     var logo = rawLogo;
 
-    // ja e base64 — usa direto, zero conversao
-    if (logo.startsWith('data:image')) return logo;
+    // ja e base64
+    if (logo.startsWith('data:image')) {
+        var logoInline = await _normalizeLogoForPDF(logo);
+        if (logoInline) return logoInline;
+    }
 
     // e uma URL valida — tenta XHR(blob->base64) e fallback via canvas
     if (isValidUrl(logo) && !logo.includes('via.placeholder')) {
         var fromXhr = await fetchBase64ViaXHR(logo);
-        if (fromXhr) return fromXhr;
+        if (fromXhr) {
+            var fromXhrSafe = await _normalizeLogoForPDF(fromXhr);
+            if (fromXhrSafe) return fromXhrSafe;
+        }
 
         var fromUrlCanvas = await _imgToBase64(logo);
         if (fromUrlCanvas) return fromUrlCanvas;
