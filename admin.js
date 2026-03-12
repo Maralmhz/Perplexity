@@ -13,8 +13,9 @@ const filterPlano = document.getElementById('filterPlano')
 const filterBusca = document.getElementById('filterBusca')
 
 const metricOficinas = document.getElementById('metricOficinas')
-const metricOficinasAtivas = document.getElementById('metricOficinasAtivas')
-const metricOficinasPendentes = document.getElementById('metricOficinasPendentes')
+const metricOficinasTrial = document.getElementById('metricOficinasTrial')
+const metricOficinasMensal = document.getElementById('metricOficinasMensal')
+const metricOficinasAnual = document.getElementById('metricOficinasAnual')
 const metricOsTotal = document.getElementById('metricOsTotal')
 const metricFaturamento = document.getElementById('metricFaturamento')
 const metricClientes = document.getElementById('metricClientes')
@@ -25,10 +26,14 @@ const detalhesStatus = document.getElementById('detalhesStatus')
 const detalhesPlano = document.getElementById('detalhesPlano')
 const detalhesOsAbertas = document.getElementById('detalhesOsAbertas')
 const detalhesFaturamento30d = document.getElementById('detalhesFaturamento30d')
-const detalhesUsuarios = document.getElementById('detalhesUsuarios')
+const detalhesClientes = document.getElementById('detalhesClientes')
+const detalhesTrialDias = document.getElementById('detalhesTrialDias')
+const trialInfoBox = document.getElementById('trialInfoBox')
+const detalhesPlanoSelect = document.getElementById('detalhesPlanoSelect')
 const btnVerUsuarios = document.getElementById('btnVerUsuarios')
-const btnHistoricoOs = document.getElementById('btnHistoricoOs')
 const btnBloquearOficina = document.getElementById('btnBloquearOficina')
+const btnSalvarPlano = document.getElementById('btnSalvarPlano')
+const btnUpgradeMensal = document.getElementById('btnUpgradeMensal')
 
 const detalhesModal = window.bootstrap ? new bootstrap.Modal(document.getElementById('oficinaDetalhesModal')) : null
 
@@ -60,9 +65,18 @@ function badgeForStatus(status) {
 }
 
 function badgeForPlano(plano = 'Free') {
-  if (plano === 'Enterprise') return '<span class="badge text-bg-dark badge-plano">Enterprise</span>'
-  if (plano === 'Pro') return '<span class="badge text-bg-primary badge-plano">Pro</span>'
-  return '<span class="badge text-bg-secondary badge-plano">Free</span>'
+  if (plano === 'MENSAL') return '<span class="badge text-bg-success badge-plano">🟢 MENSAL · R$89,90/mês</span>'
+  if (plano === 'ANUAL') return '<span class="badge text-bg-purple badge-plano" style="background:#7c3aed">🟣 ANUAL · R$1.000/ano</span>'
+  if (plano === 'PARCEIRO') return '<span class="badge text-bg-primary badge-plano">🔵 PARCEIRO · Liberado</span>'
+  if (plano === 'DIVULGADOR') return '<span class="badge text-bg-warning badge-plano">🟡 DIVULGADOR · Afiliado</span>'
+  if (plano === 'FIXO') return '<span class="badge text-bg-dark badge-plano">⚫ FIXO · Pago único</span>'
+  return '<span class="badge text-bg-warning badge-plano">🟠 TRIAL · 15 dias grátis</span>'
+}
+
+function normalizePlano(plano) {
+  const value = String(plano || '').toUpperCase()
+  const allowed = ['TRIAL', 'MENSAL', 'ANUAL', 'PARCEIRO', 'DIVULGADOR', 'FIXO']
+  return allowed.includes(value) ? value : 'TRIAL'
 }
 
 function getFilters() {
@@ -77,7 +91,7 @@ function getFilteredOficinas() {
   const filters = getFilters()
   return state.oficinas.filter((oficina) => {
     const status = oficina.status || 'pendente'
-    const plano = oficina.plano || 'Free'
+    const plano = normalizePlano(oficina.plano)
     const searchable = `${oficina.nome || ''} ${oficina.cnpj || ''} ${oficina.email || ''}`.toLowerCase()
 
     const matchStatus = filters.status === 'todos' || status === filters.status
@@ -91,16 +105,18 @@ function getFilteredOficinas() {
 function renderMetrics() {
   const oficinas = state.oficinas
   const totalOficinas = oficinas.length
-  const totalAtivas = oficinas.filter((oficina) => oficina.status === 'aprovado').length
-  const totalPendentes = oficinas.filter((oficina) => (oficina.status || 'pendente') === 'pendente').length
+  const totalTrial = oficinas.filter((oficina) => normalizePlano(oficina.plano) === 'TRIAL').length
+  const totalMensal = oficinas.filter((oficina) => normalizePlano(oficina.plano) === 'MENSAL').length
+  const totalAnual = oficinas.filter((oficina) => normalizePlano(oficina.plano) === 'ANUAL').length
 
   const totalOS = Array.from(state.osByOficina.values()).reduce((sum, stats) => sum + (stats.totalOS || 0), 0)
   const faturamento30d = Array.from(state.osByOficina.values()).reduce((sum, stats) => sum + (stats.faturamento30d || 0), 0)
   const totalClientes = Array.from(state.clientesByOficina.values()).reduce((sum, count) => sum + count, 0)
 
   metricOficinas.textContent = String(totalOficinas)
-  metricOficinasAtivas.textContent = String(totalAtivas)
-  metricOficinasPendentes.textContent = String(totalPendentes)
+  metricOficinasTrial.textContent = String(totalTrial)
+  metricOficinasMensal.textContent = String(totalMensal)
+  metricOficinasAnual.textContent = String(totalAnual)
   metricOsTotal.textContent = String(totalOS)
   metricFaturamento.textContent = formatCurrency(faturamento30d)
   metricClientes.textContent = String(totalClientes)
@@ -116,7 +132,7 @@ function renderOficinas() {
 
   tbody.innerHTML = oficinas.map((oficina) => {
     const status = oficina.status || 'pendente'
-    const plano = oficina.plano || 'Free'
+    const plano = normalizePlano(oficina.plano)
     return `
       <tr>
         <td>
@@ -187,19 +203,30 @@ function populateDetalhes(oficinaId) {
   if (!oficina) return
 
   const osStats = state.osByOficina.get(oficinaId) || { totalOS: 0, faturamento30d: 0, abertas: 0 }
-  const usuarios = state.usuariosByOficina.get(oficinaId) || 0
+  const clientes = state.clientesByOficina.get(oficinaId) || 0
+  const plano = normalizePlano(oficina.plano)
+  const trialDias = Math.max(0, Math.ceil((Date.now() - new Date(oficina.created_at || Date.now()).getTime()) / (1000 * 60 * 60 * 24)))
 
   detalhesTitulo.textContent = oficina.nome || 'Oficina sem nome'
   detalhesCnpj.textContent = oficina.cnpj || '-'
   detalhesStatus.innerHTML = badgeForStatus(oficina.status || 'pendente')
-  detalhesPlano.innerHTML = badgeForPlano(oficina.plano || 'Free')
-  detalhesOsAbertas.textContent = String(osStats.abertas || 0)
+  detalhesPlano.innerHTML = badgeForPlano(plano)
+  detalhesOsAbertas.textContent = String(osStats.totalOS || 0)
   detalhesFaturamento30d.textContent = formatCurrency(osStats.faturamento30d || 0)
-  detalhesUsuarios.textContent = String(usuarios)
+  detalhesClientes.textContent = String(clientes)
+  detalhesPlanoSelect.value = plano
+
+  if (plano === 'TRIAL') {
+    trialInfoBox.classList.remove('d-none')
+    detalhesTrialDias.textContent = `${Math.min(trialDias, 15)}/15 dias`
+  } else {
+    trialInfoBox.classList.add('d-none')
+  }
 
   btnVerUsuarios.dataset.oficinaId = oficinaId
-  btnHistoricoOs.dataset.oficinaId = oficinaId
   btnBloquearOficina.dataset.oficinaId = oficinaId
+  btnSalvarPlano.dataset.oficinaId = oficinaId
+  btnUpgradeMensal.dataset.oficinaId = oficinaId
 
   detalhesModal?.show()
 }
@@ -209,7 +236,7 @@ async function loadOficinas() {
   tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Carregando oficinas...</td></tr>'
 
   const [oficinasRes, osRes, clientesRes, usuariosRes] = await Promise.all([
-    supabase.from('oficinas').select('id, nome, cnpj, email, status, plano').order('nome', { ascending: true }),
+    supabase.from('oficinas').select('id, nome, cnpj, email, status, plano, created_at').order('nome', { ascending: true }),
     supabase.from('ordens_servico').select('oficina_id, status, valor_total, created_at'),
     supabase.from('clientes').select('oficina_id'),
     supabase.from('usuarios').select('oficina_id')
@@ -227,6 +254,24 @@ async function loadOficinas() {
   state.usuariosByOficina = aggregateByOficina(usuariosRes.data || [])
 
   renderAll()
+}
+
+async function updatePlano(oficinaId, plano) {
+  hideFeedback()
+  const newPlano = normalizePlano(plano)
+  const { error } = await supabase
+    .from('oficinas')
+    .update({ plano: newPlano })
+    .eq('id', oficinaId)
+
+  if (error) {
+    showFeedback('Nao foi possivel atualizar o plano da oficina.', 'danger')
+    return
+  }
+
+  showFeedback(`Plano atualizado para "${newPlano}".`, 'success')
+  await loadOficinas()
+  populateDetalhes(oficinaId)
 }
 
 async function updateStatus(oficinaId, status) {
@@ -279,12 +324,23 @@ btnLogout.addEventListener('click', async () => {
 })
 
 btnVerUsuarios.addEventListener('click', () => showFeedback('Ação "Ver usuários" será implementada na próxima PR.', 'info'))
-btnHistoricoOs.addEventListener('click', () => showFeedback('Ação "Histórico OS" será implementada na próxima PR.', 'info'))
 btnBloquearOficina.addEventListener('click', async () => {
   const oficinaId = btnBloquearOficina.dataset.oficinaId
   if (!oficinaId) return
   await updateStatus(oficinaId, 'rejeitado')
   detalhesModal?.hide()
+})
+
+btnSalvarPlano.addEventListener('click', async () => {
+  const oficinaId = btnSalvarPlano.dataset.oficinaId
+  if (!oficinaId) return
+  await updatePlano(oficinaId, detalhesPlanoSelect.value)
+})
+
+btnUpgradeMensal.addEventListener('click', async () => {
+  const oficinaId = btnUpgradeMensal.dataset.oficinaId
+  if (!oficinaId) return
+  await updatePlano(oficinaId, 'MENSAL')
 })
 
 tbody.addEventListener('click', async (event) => {
