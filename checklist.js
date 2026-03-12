@@ -102,21 +102,60 @@ function _imgToBase64(src) {
     });
 }
 
+function _normalizeIconBase64(srcBase64, size) {
+    size = size || 256;
+    return new Promise(function(resolve) {
+        if (!srcBase64 || !srcBase64.startsWith('data:image')) { resolve(null); return; }
+        var img = new Image();
+        img.onload = function() {
+            try {
+                var w = img.naturalWidth || img.width || size;
+                var h = img.naturalHeight || img.height || size;
+                var scale = Math.min(size / w, size / h);
+                var dw = w * scale;
+                var dh = h * scale;
+                var dx = (size - dw) / 2;
+                var dy = (size - dh) / 2;
+
+                var canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                var ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, size, size);
+                ctx.drawImage(img, dx, dy, dw, dh);
+
+                var normalized = canvas.toDataURL('image/png');
+                resolve(normalized && normalized.length > 200 ? normalized : null);
+            } catch (e) {
+                resolve(null);
+            }
+        };
+        img.onerror = function() { resolve(null); };
+        img.src = srcBase64;
+    });
+}
+
 async function getWAIconBase64() {
     var waSvg = await fetchBase64ViaXHR('whatsapp.svg');
     if (waSvg) {
-        var waSvgAsPng = await _imgToBase64(waSvg);
+        var waSvgAsPng = await _normalizeIconBase64(waSvg, 256);
         if (waSvgAsPng) return waSvgAsPng;
     }
 
     var waJpg = await fetchBase64ViaXHR('logowhatsapp.jpg');
-    if (waJpg) return waJpg;
+    if (waJpg) {
+        var waJpgAsPng = await _normalizeIconBase64(waJpg, 256);
+        if (waJpgAsPng) return waJpgAsPng;
+        return waJpg;
+    }
 
     return null;
 }
 
 async function getLogoBase64(oficina) {
-    var logo = (oficina && oficina.logo) ? oficina.logo.trim() : '';
+    var rawLogo = '';
+    if (oficina) rawLogo = (oficina.logo || oficina.logo_url || '').trim();
+    var logo = rawLogo;
 
     // ja e base64 — usa direto, zero conversao
     if (logo.startsWith('data:image')) return logo;
