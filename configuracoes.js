@@ -41,20 +41,21 @@ async function carregarOficinaDoDB() {
 function aplicarWhiteLabel(oficina) {
     if (!oficina) return;
     AppState.oficina = Object.assign({}, AppState.oficina, {
-        nome:              oficina.nome           || 'Minha Oficina',
-        nomeExibicao:      oficina.nome_exibicao  || oficina.nome || 'CheckAuto',
-        subtitulo:         oficina.subtitulo      || 'Sistema de Gestao',
-        cnpj:              oficina.cnpj           || '',
-        endereco:          oficina.endereco       || '',
-        telefone:          oficina.telefone       || '',
+        nome:              oficina.nome            || 'Minha Oficina',
+        nomeExibicao:      oficina.nome_exibicao   || oficina.nome || 'CheckAuto',
+        subtitulo:         oficina.subtitulo       || 'Sistema de Gestao',
+        cnpj:              oficina.cnpj            || '',
+        endereco:          oficina.endereco        || '',
+        telefone:          oficina.telefone        || '',
         telefoneWA:        oficina.telefone_whatsapp  || false,
-        telefone2:         oficina.telefone2      || '',
+        telefone2:         oficina.telefone2       || '',
         telefone2WA:       oficina.telefone2_whatsapp || false,
-        email:             oficina.email          || '',
-        site:              oficina.site           || '',
-        corPrimaria:       oficina.cor_primaria   || '#27ae60',
-        rodapePDF:         oficina.rodape_pdf     || 'Obrigado pela preferencia!',
-        logo:              oficina.logo_url       || ''
+        whatsapp:          oficina.whatsapp        || '',
+        email:             oficina.email           || '',
+        site:              oficina.site            || '',
+        corPrimaria:       oficina.cor_primaria    || '#27ae60',
+        rodapePDF:         oficina.rodape_pdf      || 'Obrigado pela preferencia!',
+        logo:              oficina.logo_url        || ''
     });
     const cor = AppState.oficina.corPrimaria;
     document.documentElement.style.setProperty('--primary-color', cor);
@@ -69,7 +70,6 @@ function aplicarWhiteLabel(oficina) {
 }
 
 async function initConfiguracoes() {
-    // Mascaras
     const cnpjInput = document.getElementById('cfgCnpj');
     if (cnpjInput && !cnpjInput.dataset.maskBound) {
         cnpjInput.addEventListener('input', () => aplicarMascaraCNPJ(cnpjInput));
@@ -82,8 +82,6 @@ async function initConfiguracoes() {
             el.dataset.maskBound = '1';
         }
     });
-
-    // Upload logo — base64 (max 500kb)
     const logoInput = document.getElementById('cfgLogo');
     if (logoInput && !logoInput.dataset.bound) {
         logoInput.addEventListener('change', (e) => {
@@ -100,7 +98,6 @@ async function initConfiguracoes() {
         });
         logoInput.dataset.bound = '1';
     }
-
     const oficina = await carregarOficinaDoDB();
     if (oficina) { aplicarWhiteLabel(oficina); loadConfiguracoes(); }
 }
@@ -123,40 +120,61 @@ function loadConfiguracoes() {
         const el = document.getElementById(id);
         if (el) el.value = val;
     });
-    // Checkboxes WhatsApp
     const wa1 = document.getElementById('cfgTelefoneWA');
     const wa2 = document.getElementById('cfgTelefone2WA');
     if (wa1) wa1.checked = !!o.telefoneWA;
     if (wa2) wa2.checked = !!o.telefone2WA;
-
     const preview = document.getElementById('cfgLogoPreview');
     if (preview) preview.src = o.logo || 'logo-default.png';
 }
 
 async function salvarConfiguracoes(event) {
     if (event) event.preventDefault();
-    const val  = id => document.getElementById(id)?.value.trim() || '';
-    const chk  = id => document.getElementById(id)?.checked || false;
-    const cor  = val('cfgCorPrimaria') || '#27ae60';
+    const val = id => (document.getElementById(id)?.value || '').trim();
+    const chk = id => document.getElementById(id)?.checked || false;
 
-    const payload = {
-        nome:                 val('cfgNomeOficina'),
-        nome_exibicao:        val('cfgNomeExibicao'),
-        cnpj:                 val('cfgCnpj'),
-        endereco:             val('cfgEndereco'),
-        telefone:             val('cfgTelefone'),
-        telefone_whatsapp:    chk('cfgTelefoneWA'),
-        telefone2:            val('cfgTelefone2'),
-        telefone2_whatsapp:   chk('cfgTelefone2WA'),
-        email:                val('cfgEmail'),
-        site:                 val('cfgSite'),
-        cor_primaria:         cor,
-        rodape_pdf:           val('cfgRodapePDF') || 'Obrigado pela preferencia!'
-    };
+    // Apenas colunas que existem na tabela
+    const payload = {};
+
+    const nomeOficina = val('cfgNomeOficina');
+    if (nomeOficina) payload.nome = nomeOficina;
+
+    const nomeExib = val('cfgNomeExibicao');
+    if (nomeExib) payload.nome_exibicao = nomeExib;
+
+    const cnpj = val('cfgCnpj');
+    if (cnpj) payload.cnpj = cnpj;
+
+    const endereco = val('cfgEndereco');
+    if (endereco !== undefined) payload.endereco = endereco;
+
+    const tel1 = val('cfgTelefone');
+    payload.telefone           = tel1;
+    payload.telefone_whatsapp  = chk('cfgTelefoneWA');
+
+    const tel2 = val('cfgTelefone2');
+    payload.telefone2          = tel2;
+    payload.telefone2_whatsapp = chk('cfgTelefone2WA');
+
+    // whatsapp = primeiro numero que tiver WA marcado
+    payload.whatsapp = chk('cfgTelefoneWA') ? tel1 : (chk('cfgTelefone2WA') ? tel2 : '');
+
+    const email = val('cfgEmail');
+    if (email) payload.email = email;
+
+    const site = val('cfgSite');
+    payload.site = site;
+
+    const cor = val('cfgCorPrimaria') || '#27ae60';
+    payload.cor_primaria = cor;
+
+    payload.rodape_pdf = val('cfgRodapePDF') || 'Obrigado pela preferencia!';
 
     if (AppState.oficina?.logo?.startsWith('data:')) {
         payload.logo_url = AppState.oficina.logo;
     }
+
+    console.log('Payload configuracoes:', payload);
 
     try {
         const sb = await _getSupabaseCfg();
@@ -164,16 +182,31 @@ async function salvarConfiguracoes(event) {
         if (!oficina_id) { showToast('Oficina nao identificada!','error'); return; }
 
         const { error } = await sb.from('oficinas').update(payload).eq('id', oficina_id);
-        if (error) { showToast('Erro ao salvar!','error'); console.error(error); return; }
+        if (error) {
+            console.error('Supabase error:', error);
+            showToast('Erro ao salvar: ' + (error.message || error.code || 'Verifique o console'), 'error');
+            return;
+        }
 
         aplicarWhiteLabel({
-            ...payload,
-            logo_url:            payload.logo_url || AppState.oficina?.logo || '',
-            telefone_whatsapp:   payload.telefone_whatsapp,
-            telefone2_whatsapp:  payload.telefone2_whatsapp
+            nome:                 payload.nome          || AppState.oficina?.nome,
+            nome_exibicao:        payload.nome_exibicao || AppState.oficina?.nomeExibicao,
+            cnpj:                 payload.cnpj,
+            endereco:             payload.endereco,
+            telefone:             payload.telefone,
+            telefone_whatsapp:    payload.telefone_whatsapp,
+            telefone2:            payload.telefone2,
+            telefone2_whatsapp:   payload.telefone2_whatsapp,
+            whatsapp:             payload.whatsapp,
+            email:                payload.email,
+            site:                 payload.site,
+            cor_primaria:         payload.cor_primaria,
+            rodape_pdf:           payload.rodape_pdf,
+            logo_url:             payload.logo_url || AppState.oficina?.logo || ''
         });
-        showToast('Configuracoes salvas!','success');
+        showToast('Configuracoes salvas com sucesso!', 'success');
     } catch(e) {
-        showToast('Erro inesperado!','error'); console.error(e);
+        console.error('Erro inesperado:', e);
+        showToast('Erro inesperado: ' + e.message, 'error');
     }
 }
