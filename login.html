@@ -7,8 +7,60 @@
     <title>Login</title>
     <link rel="stylesheet" href="login.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* Logos flutuando na diagonal */
+        .logos-bg {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .logo-float {
+            position: absolute;
+            opacity: 0;
+            animation: floatDiagonal linear infinite;
+            filter: brightness(10) opacity(0.13);
+            width: 72px;
+        }
+
+        @keyframes floatDiagonal {
+            0%   { transform: translate(0, 0)   rotate(-15deg); opacity: 0;    }
+            8%   { opacity: 1; }
+            92%  { opacity: 1; }
+            100% { transform: translate(320px, -110vh) rotate(-15deg); opacity: 0; }
+        }
+
+        /* Cada logo começa numa posicao horizontal diferente e tem duracao/delay variados */
+        .logo-float:nth-child(1)  { left:  2%; bottom: -80px; width: 56px; animation-duration: 14s; animation-delay:  0s; }
+        .logo-float:nth-child(2)  { left: 10%; bottom: -80px; width: 80px; animation-duration: 17s; animation-delay:  2s; }
+        .logo-float:nth-child(3)  { left: 20%; bottom: -80px; width: 60px; animation-duration: 12s; animation-delay:  5s; }
+        .logo-float:nth-child(4)  { left: 30%; bottom: -80px; width: 90px; animation-duration: 19s; animation-delay:  1s; }
+        .logo-float:nth-child(5)  { left: 42%; bottom: -80px; width: 64px; animation-duration: 15s; animation-delay:  7s; }
+        .logo-float:nth-child(6)  { left: 54%; bottom: -80px; width: 75px; animation-duration: 13s; animation-delay:  3s; }
+        .logo-float:nth-child(7)  { left: 62%; bottom: -80px; width: 55px; animation-duration: 18s; animation-delay:  9s; }
+        .logo-float:nth-child(8)  { left: 72%; bottom: -80px; width: 85px; animation-duration: 11s; animation-delay:  6s; }
+        .logo-float:nth-child(9)  { left: 82%; bottom: -80px; width: 65px; animation-duration: 16s; animation-delay:  4s; }
+        .logo-float:nth-child(10) { left: 91%; bottom: -80px; width: 70px; animation-duration: 20s; animation-delay: 11s; }
+    </style>
 </head>
 <body>
+
+    <!-- Logos flutuando no fundo -->
+    <div class="logos-bg">
+        <img class="logo-float" src="logo-default.png" alt="">
+        <img class="logo-float" src="logo-default.png" alt="">
+        <img class="logo-float" src="logo-default.png" alt="">
+        <img class="logo-float" src="logo-default.png" alt="">
+        <img class="logo-float" src="logo-default.png" alt="">
+        <img class="logo-float" src="logo-default.png" alt="">
+        <img class="logo-float" src="logo-default.png" alt="">
+        <img class="logo-float" src="logo-default.png" alt="">
+        <img class="logo-float" src="logo-default.png" alt="">
+        <img class="logo-float" src="logo-default.png" alt="">
+    </div>
+
     <div class="login-container">
         <div class="login-box">
             <div class="login-header">
