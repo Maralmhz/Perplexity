@@ -67,6 +67,14 @@ async function checkAuth() {
 // ============================================
 // CARREGAR DADOS DO SUPABASE
 // ============================================
+
+function applyOficinaScope(query) {
+    if (AppState.user?.role === 'superadmin') return query;
+    const oficinaId = AppState.user?.oficina_id;
+    if (!oficinaId) return query;
+    return query.eq('oficina_id', oficinaId);
+}
+
 async function loadFromSupabase() {
     try {
         const [
@@ -79,14 +87,14 @@ async function loadFromSupabase() {
             { data: contasFixas,   error: errCF },
             { data: checklists,    error: errCK }
         ] = await Promise.all([
-            supabase.from('clientes').select('*').order('nome'),
-            supabase.from('veiculos').select('*').order('modelo'),
-            supabase.from('ordens_servico').select('*, os_servicos(*)').order('created_at', { ascending: false }),
-            supabase.from('agendamentos').select('*').order('data', { ascending: true }),
-            supabase.from('contas_pagar').select('*').order('vencimento', { ascending: true }),
-            supabase.from('contas_receber').select('*').order('vencimento', { ascending: true }),
-            supabase.from('contas_fixas').select('*').order('dia_vencimento', { ascending: true }),
-            supabase.from('checklists').select('*').order('created_at', { ascending: false })
+            applyOficinaScope(supabase.from('clientes').select('*')).order('nome'),
+            applyOficinaScope(supabase.from('veiculos').select('*')).order('modelo'),
+            applyOficinaScope(supabase.from('ordens_servico').select('*, os_servicos(*)')).order('created_at', { ascending: false }),
+            applyOficinaScope(supabase.from('agendamentos').select('*')).order('data', { ascending: true }),
+            applyOficinaScope(supabase.from('contas_pagar').select('*')).order('vencimento', { ascending: true }),
+            applyOficinaScope(supabase.from('contas_receber').select('*')).order('vencimento', { ascending: true }),
+            applyOficinaScope(supabase.from('contas_fixas').select('*')).order('dia_vencimento', { ascending: true }),
+            applyOficinaScope(supabase.from('checklists').select('*')).order('created_at', { ascending: false })
         ]);
 
         if (errC)  throw errC;
