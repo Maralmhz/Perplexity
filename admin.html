@@ -19,6 +19,7 @@
     .metric-label { color: #6b7280; font-weight: 600; font-size: .9rem; }
     .metric-value { font-size: 1.8rem; font-weight: 700; color: #111827; }
     .badge-status, .badge-plano { text-transform: capitalize; }
+    .trial-box { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; }
     .table td, .table th { vertical-align: middle; }
     .btn-icon { display: inline-flex; align-items: center; gap: 6px; }
     .oficina-link { cursor: pointer; color: #2563eb; text-decoration: none; font-weight: 600; }
@@ -43,8 +44,9 @@
             <p class="metric-label mb-2">Oficinas</p>
             <h2 class="metric-value mb-3" id="metricOficinas">0</h2>
             <p class="mb-0 text-muted small">
-              Ativas: <strong id="metricOficinasAtivas">0</strong> |
-              Pendentes: <strong id="metricOficinasPendentes">0</strong>
+              TRIAL: <strong id="metricOficinasTrial">0</strong> |
+              MENSAL: <strong id="metricOficinasMensal">0</strong> |
+              ANUAL: <strong id="metricOficinasAnual">0</strong>
             </p>
           </div>
         </article>
@@ -82,9 +84,12 @@
             </select>
             <select id="filterPlano" class="form-select form-select-sm" style="min-width: 140px;">
               <option value="todos">Plano: Todos</option>
-              <option value="Free">Plano: Free</option>
-              <option value="Pro">Plano: Pro</option>
-              <option value="Enterprise">Plano: Enterprise</option>
+              <option value="TRIAL">Plano: TRIAL</option>
+              <option value="MENSAL">Plano: MENSAL</option>
+              <option value="ANUAL">Plano: ANUAL</option>
+              <option value="PARCEIRO">Plano: PARCEIRO</option>
+              <option value="DIVULGADOR">Plano: DIVULGADOR</option>
+              <option value="FIXO">Plano: FIXO</option>
             </select>
             <div class="input-group input-group-sm" style="min-width: 220px;">
               <span class="input-group-text"><i class="fas fa-search"></i></span>
@@ -133,14 +138,29 @@
             <div class="col-md-3"><strong>Plano:</strong> <span id="detalhesPlano">-</span></div>
           </div>
           <div class="border rounded p-3 bg-light">
-            <p class="mb-2"><i class="fas fa-chart-line me-2"></i><strong>OS abertas:</strong> <span id="detalhesOsAbertas">0</span></p>
-            <p class="mb-2"><strong>Faturamento 30d:</strong> <span id="detalhesFaturamento30d">R$ 0</span></p>
-            <p class="mb-0"><strong>Usuários:</strong> <span id="detalhesUsuarios">0</span></p>
+            <p class="mb-2"><i class="fas fa-chart-line me-2"></i><strong>OS:</strong> <span id="detalhesOsAbertas">0</span></p>
+            <p class="mb-2"><strong>R$:</strong> <span id="detalhesFaturamento30d">R$ 0</span></p>
+            <p class="mb-0"><strong>Clientes:</strong> <span id="detalhesClientes">0</span></p>
+          </div>
+          <div id="trialInfoBox" class="trial-box p-3 mt-3 d-none">
+            <p class="mb-2"><strong>TRIAL:</strong> <span id="detalhesTrialDias">-</span></p>
+            <button type="button" class="btn btn-success btn-sm" id="btnUpgradeMensal">Upgrade MENSAL R$89,90</button>
           </div>
         </div>
         <div class="modal-footer">
+          <div class="d-flex align-items-center gap-2 me-auto">
+            <label for="detalhesPlanoSelect" class="small text-muted">Alterar plano:</label>
+            <select id="detalhesPlanoSelect" class="form-select form-select-sm" style="width: 200px;">
+              <option value="TRIAL">Trial (15 dias)</option>
+              <option value="MENSAL">Mensal R$89,90</option>
+              <option value="ANUAL">Anual R$1k</option>
+              <option value="PARCEIRO">Parceiro</option>
+              <option value="DIVULGADOR">Divulgador</option>
+              <option value="FIXO">Fixo</option>
+            </select>
+            <button type="button" class="btn btn-primary btn-sm" id="btnSalvarPlano">Salvar plano</button>
+          </div>
           <button type="button" class="btn btn-outline-primary" id="btnVerUsuarios">Ver usuários</button>
-          <button type="button" class="btn btn-outline-secondary" id="btnHistoricoOs">Histórico OS</button>
           <button type="button" class="btn btn-outline-danger" id="btnBloquearOficina">Bloquear</button>
         </div>
       </div>
