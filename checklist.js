@@ -35,28 +35,97 @@ function _sb() { return window._supabase || window.supabase; }
 function setAbaAtiva(aba) { ChecklistState.abaAtiva = aba; }
 function getAbaAtiva() { return ChecklistState.abaAtiva || 'pecas'; }
 
-// WA icon PNG gerado via canvas (path limpo, sem bezier)
+// ============================================
+// WA ICON — canvas limpo, proporcional, bonito
+// ============================================
 function getWAIconPNG() {
+    var S = 128;
     var c = document.createElement('canvas');
-    c.width = 64; c.height = 64;
+    c.width = S; c.height = S;
     var ctx = c.getContext('2d');
-    ctx.clearRect(0, 0, 64, 64);
+    var cx = S / 2, cy = S / 2, r = S / 2 - 2;
+
+    // sombra suave
+    ctx.shadowColor = 'rgba(0,0,0,0.18)';
+    ctx.shadowBlur = 6;
+
     // circulo verde
     ctx.fillStyle = '#25D366';
-    ctx.beginPath(); ctx.arc(32, 32, 32, 0, Math.PI * 2); ctx.fill();
-    // circulo branco
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // handset branco (desenhado com paths geometricos limpos)
     ctx.fillStyle = '#FFFFFF';
-    ctx.beginPath(); ctx.arc(32, 32, 22, 0, Math.PI * 2); ctx.fill();
-    // circulo verde interno
-    ctx.fillStyle = '#25D366';
-    ctx.beginPath(); ctx.arc(32, 32, 16, 0, Math.PI * 2); ctx.fill();
-    // simbolo de telefone
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 20px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('\u260E', 32, 33);
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(0.62, 0.62);
+
+    // corpo do handset via path SVG-like
+    var p = new Path2D(
+        'M -28 -44 ' +
+        'C -42 -44 -52 -34 -52 -20 ' +
+        'C -52 8 -38 34 -14 50 ' +
+        'C 10 66 38 72 52 60 ' +
+        'L 52 44 ' +
+        'C 52 38 46 34 40 36 ' +
+        'L 24 42 ' +
+        'C 20 44 16 42 14 38 ' +
+        'C 8 28 4 16 4 4 ' +
+        'C 4 -1 8 -6 12 -8 ' +
+        'L 28 -16 ' +
+        'C 34 -18 38 -24 36 -30 ' +
+        'L 28 -46 ' +
+        'C 26 -52 20 -54 14 -52 ' +
+        'C 2 -48 -12 -46 -28 -44 Z'
+    );
+    ctx.fill(p);
+    ctx.restore();
+
     return c.toDataURL('image/png');
+}
+
+// ============================================
+// LOGO — carrega via Image tag + canvas (sem CORS/fetch)
+// ============================================
+function loadImageToBase64(src) {
+    return new Promise(function(resolve) {
+        var img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = function() {
+            try {
+                var canvas = document.createElement('canvas');
+                canvas.width = img.naturalWidth || img.width;
+                canvas.height = img.naturalHeight || img.height;
+                canvas.getContext('2d').drawImage(img, 0, 0);
+                var b64 = canvas.toDataURL('image/png');
+                resolve(b64 && b64.length > 200 ? b64 : null);
+            } catch(e) { resolve(null); }
+        };
+        img.onerror = function() { resolve(null); };
+        // cache bust para garantir reload
+        img.src = src + (src.indexOf('?') === -1 ? '?_=' : '&_=') + Date.now();
+    });
+}
+
+async function getLogoBase64(oficina) {
+    // 1. se ja e base64, usa direto
+    if (oficina.logo && oficina.logo.startsWith('data:image')) return oficina.logo;
+
+    // 2. tenta logo da oficina (URL ou path)
+    var logoSrc = (oficina.logo && !oficina.logo.includes('via.placeholder') && oficina.logo.trim() !== '')
+        ? oficina.logo : null;
+
+    if (logoSrc) {
+        var b64 = await loadImageToBase64(logoSrc);
+        if (b64) return b64;
+    }
+
+    // 3. fallback: logo-default.png (relativo ao HTML)
+    var def = await loadImageToBase64('logo-default.png');
+    if (def) return def;
+
+    // 4. sem logo
+    return null;
 }
 
 // ============================================
@@ -499,28 +568,13 @@ async function gerarPDF() {
     function hexToRgb(hex){return[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];}
     const corRgb = hexToRgb(corPrimaria);
 
-    // --- LOGO: carrega com fallback garantido ---
-    async function getLogoBase64(){
-        const src = oficina.logo && !oficina.logo.includes('via.placeholder') && !oficina.logo.includes('logo-default')
-            ? oficina.logo : 'logo-default.png';
-        if (src.startsWith('data:')) return src;
-        // tenta carregar via fetch
-        for (const url of [src, 'logo-default.png']) {
-            try {
-                const res = await fetch(url, { cache: 'force-cache' });
-                if (!res.ok) continue;
-                const blob = await res.blob();
-                const b64 = await new Promise(r => { var fr=new FileReader(); fr.onload=()=>r(fr.result); fr.readAsDataURL(blob); });
-                if (b64 && b64.length > 100) return b64;
-            } catch(e) { /* tenta proximo */ }
-        }
-        return '';
-    }
-    var logoBase64 = await getLogoBase64();
+    // logo via img+canvas (sem fetch, sem CORS)
+    var logoBase64 = await getLogoBase64(oficina);
 
-    // --- WA ICON: gerado UMA vez, alias unico por sessao ---
+    // WA icon limpo
     var waIconData = getWAIconPNG();
-    var waAlias = 'WA' + Date.now(); // alias unico evita cache corrompido entre paginas
+    var _waIdx = 0; // contador de alias unicos
+    function nextWaAlias() { return 'WA' + Date.now() + (_waIdx++); }
 
     function gv(id){var el=document.getElementById(id);return el?el.value.trim():'';}
     var osNum       = (document.getElementById('checklistNumeroOS')?document.getElementById('checklistNumeroOS').textContent.trim():'')||'SEM-OS';
@@ -553,16 +607,9 @@ async function gerarPDF() {
 
     function drawBase(){doc.setDrawColor(210,210,210);doc.rect(MARGIN,10,PAGE_W-MARGIN*2,277);}
 
-    // =============================================
-    // HEADER CORRIGIDO
-    // Layout:
-    //  [LOGO 20x14]  NOME OFICINA (bold)
-    //                ENDERECO
-    //                [WA] TEL1  [WA] TEL2   <- lado a lado na mesma linha
-    //                CNPJ
-    //                             ORDEM DE SERVICO
-    //                             OS-NUMERO (cor oficina)
-    // =============================================
+    // ============================================================
+    // HEADER
+    // ============================================================
     function drawHeader(){
         doc.setDrawColor(225,225,225);
         doc.line(22,17,188,17);
@@ -570,18 +617,18 @@ async function gerarPDF() {
         // caixa logo
         doc.setFillColor(255,255,255);
         doc.setDrawColor(225,225,225);
-        doc.roundedRect(22,22,20,14,1,1,'FD');
+        doc.roundedRect(22, 22, 20, 14, 1, 1, 'FD');
 
         // logo
         if (logoBase64 && /^data:image\//.test(logoBase64)) {
             var lf = /jpeg|jpg/.test(logoBase64) ? 'JPEG' : 'PNG';
             try { doc.addImage(logoBase64, lf, 22.8, 22.8, 18.4, 12.4, logoAlias, 'FAST'); } catch(e) {}
         } else {
-            doc.setFont('helvetica','bold'); doc.setTextColor(150,150,150); doc.setFontSize(7);
+            doc.setFont('helvetica','normal'); doc.setTextColor(160,160,160); doc.setFontSize(6);
             doc.text('LOGO', 32, 30, {align:'center'});
         }
 
-        // nome da oficina
+        // nome
         doc.setFont('helvetica','bold'); doc.setTextColor(30,30,30); doc.setFontSize(10.5);
         doc.text(oficina.nome || 'OFICINA', 45, 25);
 
@@ -589,48 +636,45 @@ async function gerarPDF() {
         doc.setFont('helvetica','normal'); doc.setTextColor(110,110,110); doc.setFontSize(6.3);
         if (oficina.endereco) doc.text(oficina.endereco, 45, 29);
 
-        // --- Telefones LADO A LADO na mesma linha Y=33 ---
+        // --- telefones lado a lado, Y=33 ---
         var telX = 45;
         var telY = 33;
-        doc.setFontSize(6.3);
+        doc.setFontSize(6.3); doc.setTextColor(80,80,80);
 
         if (oficina.telefone) {
             if (oficina.telefoneWA && waIconData) {
-                try { doc.addImage(waIconData, 'PNG', telX, telY - 2.6, 3, 3, waAlias + 'A', 'FAST'); } catch(e){}
+                try { doc.addImage(waIconData, 'PNG', telX, telY - 2.7, 3.2, 3.2, nextWaAlias(), 'FAST'); } catch(e){}
                 doc.text(oficina.telefone, telX + 3.8, telY);
-                telX += 3.8 + doc.getTextWidth(oficina.telefone) + 4;
+                telX += 3.8 + doc.getTextWidth(oficina.telefone) + 3;
             } else {
                 doc.text(oficina.telefone, telX, telY);
-                telX += doc.getTextWidth(oficina.telefone) + 4;
+                telX += doc.getTextWidth(oficina.telefone) + 3;
             }
         }
 
         if (oficina.telefone2) {
-            // separador
-            doc.setTextColor(180,180,180);
-            doc.text('|', telX - 2, telY);
-            doc.setTextColor(110,110,110);
+            doc.setTextColor(200,200,200); doc.text('|', telX, telY);
+            telX += doc.getTextWidth('|') + 2;
+            doc.setTextColor(80,80,80);
             if (oficina.telefone2WA && waIconData) {
-                try { doc.addImage(waIconData, 'PNG', telX, telY - 2.6, 3, 3, waAlias + 'B', 'FAST'); } catch(e){}
+                try { doc.addImage(waIconData, 'PNG', telX, telY - 2.7, 3.2, 3.2, nextWaAlias(), 'FAST'); } catch(e){}
                 doc.text(oficina.telefone2, telX + 3.8, telY);
             } else {
                 doc.text(oficina.telefone2, telX, telY);
             }
         }
 
-        // CNPJ na linha abaixo dos telefones
+        // CNPJ
         doc.setTextColor(110,110,110); doc.setFontSize(6.3);
         doc.text('CNPJ: ' + (oficina.cnpj || ''), 45, 37);
 
-        // --- lado direito: ORDEM DE SERVICO + numero ---
-        doc.setFont('helvetica','bold'); doc.setTextColor(120,120,120); doc.setFontSize(6.4);
+        // lado direito
+        doc.setFont('helvetica','bold'); doc.setTextColor(140,140,140); doc.setFontSize(6.4);
         doc.text('ORDEM DE SERVICO', 188, 28, {align:'right'});
-
-        // numero OS com COR DA OFICINA (nao mais vermelho fixo)
         doc.setTextColor(corRgb[0], corRgb[1], corRgb[2]); doc.setFontSize(12);
         doc.text(osNum, 188, 34, {align:'right'});
 
-        // linha separadora colorida
+        // linha separadora
         doc.setDrawColor(corRgb[0],corRgb[1],corRgb[2]); doc.setLineWidth(0.7);
         doc.line(22, 40.5, 188, 40.5);
         doc.setLineWidth(0.2);
