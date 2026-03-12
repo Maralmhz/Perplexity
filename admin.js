@@ -235,34 +235,17 @@ async function loadOficinas() {
   hideFeedback()
   tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Carregando...</td></tr>'
 
-  const oficinasQueries = [
-    'id, nome, cnpj, email, status, plano, created_at',
-    'id, nome, email, status, plano, created_at'
-  ]
-
-  const fetchOficinas = async () => {
-    for (const query of oficinasQueries) {
-      try {
-        console.log('[admin] Query oficinas:', query)
-        const response = await supabase.from('oficinas').select(query).order('nome', { ascending: true })
-        console.log('[admin] Resposta raw oficinas:', response)
-
-        if (!response.error) return response
-      } catch (error) {
-        console.log('[admin] Erro em query oficinas:', query, error)
-      }
-    }
-
-    return { data: [], error: new Error('Falha em todas as queries de oficinas') }
-  }
-
   try {
+    console.log('[admin] Query oficinas:', 'id,nome,email,status,plano')
+
     const [oficinasRes, osRes, clientesRes, usuariosRes] = await Promise.all([
-      fetchOficinas(),
+      supabase.from('oficinas').select('id,nome,email,status,plano').order('nome', { ascending: true }),
       supabase.from('ordens_servico').select('oficina_id, status, valor_total, created_at'),
       supabase.from('clientes').select('oficina_id'),
       supabase.from('usuarios').select('oficina_id')
     ])
+
+    console.log('[admin] Resposta raw oficinas:', oficinasRes)
 
     if (oficinasRes.error) {
       state.oficinas = []
