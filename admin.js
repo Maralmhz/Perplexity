@@ -53,12 +53,6 @@ const state = {
   usuariosByOficina: new Map(),
   supportsTrialColumns: true
 }
-
-function isMissingColumnError(error) {
-  const msg = `${error?.message || ''} ${error?.details || ''}`.toLowerCase()
-  return error?.code === 'PGRST204' || msg.includes('column')
-}
-
 function formatCurrency(value = 0) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(value || 0)
 }
@@ -330,26 +324,19 @@ async function loadOficinas() {
   tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Carregando...</td></tr>'
 
   try {
-    const selectCompleto = 'id,nome,email,status,plano,plano_status,trial_fim,nome_exibicao,cor_primaria,rodape_pdf,logo_url'
-    const selectLegacy = 'id,nome,email,status,plano,nome_exibicao,cor_primaria,rodape_pdf,logo_url'
+    const selectOficinas = '*'
+    console.log('[admin] Query oficinas:', selectOficinas)
 
-    console.log('[admin] Query oficinas:', selectCompleto)
-
-    const [oficinasRawRes, osRes, clientesRes, usuariosRes] = await Promise.all([
-      supabase.from('oficinas').select(selectCompleto).order('nome', { ascending: true }),
+    const [oficinasRes, osRes, clientesRes, usuariosRes] = await Promise.all([
+      supabase.from('oficinas').select(selectOficinas).order('nome', { ascending: true }),
       supabase.from('ordens_servico').select('oficina_id, status, valor_total, created_at'),
       supabase.from('clientes').select('oficina_id'),
       supabase.from('usuarios').select('oficina_id')
     ])
 
-    let oficinasRes = oficinasRawRes
-    if (oficinasRes.error && isMissingColumnError(oficinasRes.error)) {
-      console.warn('[admin] Campos trial/plano_status indisponiveis; usando query legacy.')
-      oficinasRes = await supabase.from('oficinas').select(selectLegacy).order('nome', { ascending: true })
-      state.supportsTrialColumns = false
-    } else {
-      state.supportsTrialColumns = true
-    }
+    state.supportsTrialColumns = Array.isArray(oficinasRes.data)
+      ? oficinasRes.data.some((oficina) => Object.prototype.hasOwnProperty.call(oficina || {}, 'plano_status'))
+      : false
 
     console.log('[admin] Resposta raw oficinas:', oficinasRes)
 

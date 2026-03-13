@@ -128,17 +128,38 @@ function isMissingColumnError(error) {
   return error?.code === 'PGRST204' || msg.includes('column')
 }
 
-document.getElementById('btnSolicitarCheckauto')?.addEventListener('click', () => {
-  onboardingModal?.classList.add('active')
-  document.getElementById('onbEmail').value = document.getElementById('email').value || ''
-})
+let lastFocusedElement = null
 
-document.getElementById('btnCloseOnboarding')?.addEventListener('click', () => {
-  onboardingModal?.classList.remove('active')
-})
+function openOnboardingModal() {
+  if (!onboardingModal) return
+  lastFocusedElement = document.activeElement
+  onboardingModal.classList.add('active')
+  onboardingModal.setAttribute('aria-hidden', 'false')
+  onboardingModal.removeAttribute('inert')
+
+  document.getElementById('onbEmail').value = document.getElementById('email').value || ''
+  setTimeout(() => document.getElementById('onbNome')?.focus(), 0)
+}
+
+function closeOnboardingModal() {
+  if (!onboardingModal) return
+  onboardingModal.classList.remove('active')
+  onboardingModal.setAttribute('aria-hidden', 'true')
+  onboardingModal.setAttribute('inert', '')
+  if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
+    lastFocusedElement.focus()
+  }
+}
+
+document.getElementById('btnSolicitarCheckauto')?.addEventListener('click', openOnboardingModal)
+document.getElementById('btnCloseOnboarding')?.addEventListener('click', closeOnboardingModal)
 
 onboardingModal?.addEventListener('click', (event) => {
-  if (event.target === onboardingModal) onboardingModal.classList.remove('active')
+  if (event.target === onboardingModal) closeOnboardingModal()
+})
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && onboardingModal?.classList.contains('active')) closeOnboardingModal()
 })
 
 document.querySelectorAll('.plan-option').forEach((button) => {
@@ -192,11 +213,17 @@ onboardingForm?.addEventListener('submit', async (event) => {
 
   if (insertRes.error) {
     console.error('[onboarding] erro ao solicitar checkauto', insertRes.error)
-    showError('Nao foi possivel enviar agora. Tente novamente em instantes.')
+
+    const rlsDenied = insertRes.error.code === '42501' || insertRes.error.status === 401
+    if (rlsDenied) {
+      showError('Cadastro bloqueado por política de segurança. Aplique o SQL de política pública do PR-14 e tente novamente.')
+    } else {
+      showError('Nao foi possivel enviar agora. Tente novamente em instantes.')
+    }
     return
   }
 
-  onboardingModal?.classList.remove('active')
+  closeOnboardingModal()
   onboardingForm.reset()
   onboardingPlanoInput.value = 'TRIAL'
   document.querySelectorAll('.plan-option').forEach((option) => option.classList.remove('active'))
